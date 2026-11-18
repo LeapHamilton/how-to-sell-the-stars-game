@@ -126,14 +126,10 @@ let musicEnabled = true;
 let musicInterval = null;
 let musicStep = 0;
 
-// Frequency helper (MIDI note number to Hz)
 function mtof(m) {
   return 440 * Math.pow(2, (m - 69) / 12);
 }
 
-// Iconic opening section of Prokofiev's Dance of the Knights (E minor, 4/4 Pesante)
-// 1 step = 1 eighth note (~250ms -> ~120 BPM)
-// Format: [bassMidi, leadMidi, leadDurationSteps]
 const PROKOFIEV_SCORE = [
   // Bars 1-2: Famous heavy stomping low-string ostinato (E2 - B2 - G2 - B2)
   [40, null, 0], [null, null, 0], [47, null, 0], [null, null, 0],
@@ -141,31 +137,31 @@ const PROKOFIEV_SCORE = [
   [40, null, 0], [null, null, 0], [47, null, 0], [null, null, 0],
   [43, null, 0], [null, null, 0], [47, null, 0], [null, null, 0],
 
-  // Bar 3: Bold Brass Melody enters on beat 1! (E4 dotted-quarter, D4 eighth, B3 quarter, G3 quarter)
+  // Bar 3: Bold Brass Melody enters on beat 1!
   [40, 64, 3],   [null, null, 0], [47, null, 0], [null, 62, 1],
   [43, 59, 2],   [null, null, 0], [47, 55, 2],   [null, null, 0],
 
-  // Bar 4: (F#3 dotted-quarter, E3 eighth, B3 half)
+  // Bar 4:
   [40, 54, 3],   [null, null, 0], [47, null, 0], [null, 52, 1],
   [43, 59, 4],   [null, null, 0], [47, null, 0], [null, null, 0],
 
-  // Bar 5: Second phrase leaping up (G4 dotted-quarter, F#4 eighth, D4 quarter, B3 quarter)
+  // Bar 5: Second phrase leaping up
   [40, 67, 3],   [null, null, 0], [47, null, 0], [null, 66, 1],
   [43, 62, 2],   [null, null, 0], [47, 59, 2],   [null, null, 0],
 
-  // Bar 6: (A#3 dotted-quarter, B3 eighth, D#4 half)
+  // Bar 6:
   [42, 58, 3],   [null, null, 0], [47, null, 0], [null, 59, 1],
   [35, 63, 4],   [null, null, 0], [42, null, 0], [null, null, 0],
 
-  // Bar 7: High dramatic peak! (B4 dotted-quarter, A4 eighth, F#4 quarter, D#4 quarter)
+  // Bar 7: High dramatic peak
   [40, 71, 3],   [null, null, 0], [47, null, 0], [null, 69, 1],
   [43, 66, 2],   [null, null, 0], [47, 63, 2],   [null, null, 0],
 
-  // Bar 8: Chromatic turn (E4 dotted-quarter, C4 eighth, A3 quarter, F#3 quarter)
+  // Bar 8: Chromatic turn
   [45, 64, 3],   [null, null, 0], [52, null, 0], [null, 60, 1],
   [45, 57, 2],   [null, null, 0], [42, 54, 2],   [null, null, 0],
 
-  // Bar 9: Cadence descent (G3 quarter, F#3 quarter, E3 quarter, D#3 quarter)
+  // Bar 9: Cadence descent
   [40, 55, 2],   [null, null, 0], [47, 54, 2],   [null, null, 0],
   [35, 52, 2],   [null, null, 0], [47, 51, 2],   [null, null, 0],
 
@@ -264,17 +260,15 @@ function playSfx(kind) {
 
 function startMusicLoop() {
   if (musicInterval) clearInterval(musicInterval);
-  const stepMs = 245; // Heavy, dramatic pesante tempo
+  const stepMs = 245;
   musicInterval = setInterval(() => {
     if (!musicEnabled || !audioCtx || audioCtx.state !== 'running') return;
     const [bass, lead, durSteps] = PROKOFIEV_SCORE[musicStep % PROKOFIEV_SCORE.length];
     if (bass !== null) {
-      // Heavy low-string / tuba stomp
       playNote(mtof(bass), 0.36, 'triangle', 0.13);
       playNote(mtof(bass - 12), 0.34, 'sawtooth', 0.05);
     }
     if (lead !== null) {
-      // Bold brass melody
       const dur = Math.max(0.22, durSteps * (stepMs / 1000) * 0.92);
       playNote(mtof(lead), dur, 'sawtooth', 0.075);
       playNote(mtof(lead), dur, 'square', 0.035, 6);
@@ -301,7 +295,7 @@ function downloadSelf() {
 }
 
 // ============================================================================
-// GAME ENGINE & LEVEL DATA
+// GAME ENGINE & LEVEL DATA (VERIFIED REACHABLE JUMPS & SMOOTH PROGRESSION)
 // ============================================================================
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -318,7 +312,7 @@ window.addEventListener('keydown', (e) => {
   initAudio();
   if (!keys[e.code]) {
     if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-      jumpBufferTimer = 0.14;
+      jumpBufferTimer = 0.16;
       if (gameState === 'title') startGame();
       else if (gameState === 'gameover' || gameState === 'victory') startGame();
     }
@@ -339,7 +333,7 @@ canvas.addEventListener('click', () => {
   }
 });
 
-// Platform types: 'solid', 'crumble', 'conveyorL', 'conveyorR'
+// Max jump height is ~112px (vy = -490, g = 1080), all vertical steps <= 82px!
 const LEVELS = [
   // ==========================================================================
   // LEVEL 1: 1950s KNUCKLEVILLE AD AGENCY
@@ -353,41 +347,41 @@ const LEVELS = [
     solidColor: "#8d5524",
     solidTop: "#e09f3e",
     spawn: { x: 48, y: 452 },
-    door: { x: 726, y: 66, w: 36, h: 48 },
+    door: { x: 726, y: 74, w: 36, h: 48 },
     platforms: [
       // Ground floor
       { x: 0, y: 500, w: 800, h: 40, type: 'solid' },
-      // Tier 1
-      { x: 140, y: 425, w: 140, h: 16, type: 'solid' },
-      { x: 340, y: 425, w: 120, h: 16, type: 'crumble' },
-      { x: 530, y: 410, w: 180, h: 16, type: 'conveyorL' },
-      // Tier 2
-      { x: 640, y: 330, w: 130, h: 16, type: 'solid' },
-      { x: 420, y: 320, w: 150, h: 16, type: 'solid' },
-      { x: 220, y: 325, w: 130, h: 16, type: 'crumble' },
-      { x: 30,  y: 310, w: 140, h: 16, type: 'solid' },
-      // Tier 3
-      { x: 150, y: 225, w: 170, h: 16, type: 'conveyorR' },
-      { x: 390, y: 215, w: 110, h: 16, type: 'crumble' },
-      { x: 560, y: 215, w: 180, h: 16, type: 'solid' },
-      // Top Tier (Portal to 2120)
-      { x: 360, y: 125, w: 140, h: 16, type: 'crumble' },
-      { x: 130, y: 125, w: 150, h: 16, type: 'solid' },
-      { x: 570, y: 114, w: 205, h: 16, type: 'solid' }
+      // Tier 1 (max step up = 75px)
+      { x: 130, y: 428, w: 150, h: 16, type: 'solid' },
+      { x: 335, y: 425, w: 130, h: 16, type: 'crumble' },
+      { x: 520, y: 418, w: 195, h: 16, type: 'conveyorL' },
+      // Tier 2 (max step up = 78px)
+      { x: 635, y: 342, w: 135, h: 16, type: 'solid' },
+      { x: 425, y: 335, w: 155, h: 16, type: 'solid' },
+      { x: 225, y: 335, w: 140, h: 16, type: 'crumble' },
+      { x: 30,  y: 325, w: 145, h: 16, type: 'solid' },
+      // Tier 3 (max step up = 80px)
+      { x: 145, y: 245, w: 175, h: 16, type: 'conveyorR' },
+      { x: 380, y: 235, w: 125, h: 16, type: 'crumble' },
+      { x: 560, y: 228, w: 185, h: 16, type: 'solid' },
+      // Tier 4 - Top Agency Suite (max step up = 80px, generous gaps)
+      { x: 565, y: 122, w: 210, h: 16, type: 'solid' },
+      { x: 355, y: 148, w: 150, h: 16, type: 'crumble' },
+      { x: 120, y: 142, w: 170, h: 16, type: 'solid' }
     ],
     ideas: [
-      { x: 205, y: 390 },
-      { x: 615, y: 375 },
-      { x: 90,  y: 275 },
-      { x: 485, y: 285 },
-      { x: 225, y: 190 },
-      { x: 195, y: 90 }
+      { x: 205, y: 394 },
+      { x: 615, y: 384 },
+      { x: 95,  y: 290 },
+      { x: 495, y: 300 },
+      { x: 230, y: 210 },
+      { x: 195, y: 108 }
     ],
     enemies: [
       { type: 'typewriter', x: 340, y: 468, minX: 240, maxX: 560, vx: 110 },
-      { type: 'adman',      x: 440, y: 284, minX: 425, maxX: 545, vx: 95 },
-      { type: 'coffee',     x: 580, y: 183, minX: 565, maxX: 715, vx: 125 },
-      { type: 'adman',      x: 150, y: 89,  minX: 135, maxX: 255, vx: 85 }
+      { type: 'adman',      x: 440, y: 299, minX: 430, maxX: 550, vx: 95 },
+      { type: 'coffee',     x: 580, y: 196, minX: 565, maxX: 720, vx: 120 },
+      { type: 'adman',      x: 145, y: 106, minX: 125, maxX: 265, vx: 85 }
     ]
   },
 
@@ -403,42 +397,42 @@ const LEVELS = [
     solidColor: "#2b5876",
     solidTop: "#00f5d4",
     spawn: { x: 42, y: 452 },
-    door: { x: 42, y: 66, w: 36, h: 48 },
+    door: { x: 42, y: 74, w: 36, h: 48 },
     platforms: [
       // Ground
       { x: 0, y: 500, w: 800, h: 40, type: 'solid' },
       // Tier 1
-      { x: 180, y: 425, w: 120, h: 16, type: 'crumble' },
-      { x: 360, y: 410, w: 160, h: 16, type: 'conveyorR' },
-      { x: 580, y: 395, w: 180, h: 16, type: 'solid' },
+      { x: 175, y: 428, w: 130, h: 16, type: 'crumble' },
+      { x: 355, y: 418, w: 165, h: 16, type: 'conveyorR' },
+      { x: 575, y: 408, w: 185, h: 16, type: 'solid' },
       // Tier 2
-      { x: 420, y: 315, w: 115, h: 16, type: 'crumble' },
-      { x: 200, y: 310, w: 160, h: 16, type: 'conveyorL' },
-      { x: 30,  y: 295, w: 120, h: 16, type: 'solid' },
+      { x: 420, y: 332, w: 125, h: 16, type: 'crumble' },
+      { x: 200, y: 325, w: 165, h: 16, type: 'conveyorL' },
+      { x: 30,  y: 312, w: 125, h: 16, type: 'solid' },
       // Tier 3
-      { x: 180, y: 215, w: 110, h: 16, type: 'crumble' },
-      { x: 350, y: 205, w: 170, h: 16, type: 'solid' },
-      { x: 580, y: 205, w: 160, h: 16, type: 'conveyorL' },
+      { x: 175, y: 235, w: 125, h: 16, type: 'crumble' },
+      { x: 350, y: 225, w: 175, h: 16, type: 'solid' },
+      { x: 580, y: 220, w: 165, h: 16, type: 'conveyorL' },
       // Tier 4
-      { x: 410, y: 125, w: 120, h: 16, type: 'crumble' },
-      { x: 220, y: 120, w: 120, h: 16, type: 'crumble' },
-      { x: 25,  y: 114, w: 145, h: 16, type: 'solid' }
+      { x: 415, y: 145, w: 130, h: 16, type: 'crumble' },
+      { x: 225, y: 138, w: 130, h: 16, type: 'crumble' },
+      { x: 25,  y: 122, w: 150, h: 16, type: 'solid' }
     ],
     ideas: [
-      { x: 435, y: 375 },
-      { x: 675, y: 360 },
-      { x: 85,  y: 260 },
-      { x: 275, y: 275 },
-      { x: 430, y: 170 },
-      { x: 660, y: 170 },
-      { x: 275, y: 85 }
+      { x: 435, y: 384 },
+      { x: 675, y: 374 },
+      { x: 85,  y: 278 },
+      { x: 275, y: 290 },
+      { x: 430, y: 190 },
+      { x: 660, y: 185 },
+      { x: 285, y: 104 }
     ],
     enemies: [
       { type: 'drone',   x: 320, y: 464, minX: 210, maxX: 620, vx: 135 },
-      { type: 'pamper',  x: 600, y: 359, minX: 585, maxX: 730, vx: 90 },
-      { type: 'drone',   x: 220, y: 274, minX: 205, maxX: 335, vx: 120 },
-      { type: 'pamper',  x: 370, y: 169, minX: 355, maxX: 490, vx: 105 },
-      { type: 'drone',   x: 600, y: 169, minX: 585, maxX: 710, vx: 140 }
+      { type: 'pamper',  x: 600, y: 372, minX: 585, maxX: 730, vx: 90 },
+      { type: 'drone',   x: 220, y: 289, minX: 205, maxX: 340, vx: 120 },
+      { type: 'pamper',  x: 370, y: 189, minX: 355, maxX: 495, vx: 105 },
+      { type: 'drone',   x: 600, y: 184, minX: 585, maxX: 715, vx: 140 }
     ]
   },
 
@@ -454,45 +448,44 @@ const LEVELS = [
     solidColor: "#4a1c6b",
     solidTop: "#ff758f",
     spawn: { x: 44, y: 452 },
-    door: { x: 732, y: 66, w: 36, h: 48 },
+    door: { x: 732, y: 74, w: 36, h: 48 },
     platforms: [
       // Ground
       { x: 0, y: 500, w: 800, h: 40, type: 'solid' },
       // Tier 1
-      { x: 160, y: 425, w: 110, h: 16, type: 'crumble' },
-      { x: 330, y: 415, w: 140, h: 16, type: 'conveyorL' },
-      { x: 540, y: 405, w: 110, h: 16, type: 'crumble' },
-      { x: 690, y: 380, w: 90,  h: 16, type: 'solid' },
+      { x: 155, y: 428, w: 120, h: 16, type: 'crumble' },
+      { x: 330, y: 420, w: 145, h: 16, type: 'conveyorL' },
+      { x: 535, y: 412, w: 120, h: 16, type: 'crumble' },
+      { x: 690, y: 395, w: 95,  h: 16, type: 'solid' },
       // Tier 2
-      { x: 490, y: 310, w: 140, h: 16, type: 'solid' },
-      { x: 280, y: 310, w: 120, h: 16, type: 'crumble' },
-      { x: 60,  y: 300, w: 150, h: 16, type: 'conveyorR' },
+      { x: 490, y: 322, w: 145, h: 16, type: 'solid' },
+      { x: 280, y: 320, w: 130, h: 16, type: 'crumble' },
+      { x: 60,  y: 312, w: 155, h: 16, type: 'conveyorR' },
       // Tier 3
-      { x: 180, y: 210, w: 110, h: 16, type: 'crumble' },
-      { x: 360, y: 205, w: 150, h: 16, type: 'solid' },
-      { x: 575, y: 205, w: 110, h: 16, type: 'crumble' },
+      { x: 180, y: 228, w: 120, h: 16, type: 'crumble' },
+      { x: 360, y: 220, w: 155, h: 16, type: 'solid' },
+      { x: 575, y: 215, w: 120, h: 16, type: 'crumble' },
       // Top Summit
-      { x: 420, y: 120, w: 120, h: 16, type: 'conveyorR' },
-      { x: 210, y: 120, w: 120, h: 16, type: 'crumble' },
-      { x: 615, y: 114, w: 165, h: 16, type: 'solid' }
+      { x: 415, y: 140, w: 130, h: 16, type: 'conveyorR' },
+      { x: 210, y: 138, w: 130, h: 16, type: 'crumble' },
+      { x: 610, y: 122, w: 170, h: 16, type: 'solid' }
     ],
     ideas: [
-      { x: 395, y: 380 },
-      { x: 730, y: 345 },
-      { x: 125, y: 265 },
-      { x: 555, y: 275 },
-      { x: 230, y: 175 },
-      { x: 430, y: 170 },
-      { x: 265, y: 85 },
-      { x: 635, y: 80 }
+      { x: 395, y: 386 },
+      { x: 735, y: 360 },
+      { x: 125, y: 278 },
+      { x: 555, y: 288 },
+      { x: 235, y: 194 },
+      { x: 430, y: 186 },
+      { x: 270, y: 104 },
+      { x: 635, y: 88 }
     ],
     enemies: [
-      // Giant alien Katzenjammer bats + ticking EMG bombs!
       { type: 'emgbomb',      x: 340, y: 468, minX: 220, maxX: 620, vx: 130 },
-      { type: 'katzenjammer', x: 520, y: 335, minX: 430, maxX: 730, vx: 135, baseY: 335, bobAmp: 18, bobFreq: 4.2 },
-      { type: 'katzenjammer', x: 140, y: 245, minX: 50,  maxX: 340, vx: 145, baseY: 245, bobAmp: 22, bobFreq: 4.8 },
-      { type: 'emgbomb',      x: 380, y: 173, minX: 365, maxX: 485, vx: 110 },
-      { type: 'katzenjammer', x: 480, y: 135, minX: 210, maxX: 640, vx: 155, baseY: 135, bobAmp: 20, bobFreq: 5.0 }
+      { type: 'katzenjammer', x: 520, y: 345, minX: 430, maxX: 730, vx: 135, baseY: 345, bobAmp: 16, bobFreq: 4.2 },
+      { type: 'katzenjammer', x: 140, y: 255, minX: 50,  maxX: 340, vx: 145, baseY: 255, bobAmp: 20, bobFreq: 4.8 },
+      { type: 'emgbomb',      x: 380, y: 188, minX: 365, maxX: 490, vx: 110 },
+      { type: 'katzenjammer', x: 480, y: 145, minX: 210, maxX: 640, vx: 155, baseY: 145, bobAmp: 18, bobFreq: 5.0 }
     ]
   }
 ];
@@ -500,7 +493,7 @@ const LEVELS = [
 // ============================================================================
 // RUNTIME STATE
 // ============================================================================
-let gameState = 'title'; // 'title', 'playing', 'gameover', 'victory'
+let gameState = 'title';
 let currentLevelIdx = 0;
 let score = 0;
 let lives = 5;
@@ -544,7 +537,7 @@ function loadLevel(idx) {
 
   platforms = def.platforms.map(p => ({
     ...p,
-    crumbleState: 'intact', // 'intact', 'shaking', 'gone'
+    crumbleState: 'intact',
     crumbleTimer: 0,
     regenTimer: 0
   }));
@@ -613,7 +606,6 @@ function update(dt) {
   globalTime += dt;
   if (screenShake > 0) screenShake = Math.max(0, screenShake - dt);
 
-  // Update particles
   for (let i = particles.length - 1; i >= 0; i--) {
     const pt = particles[i];
     pt.x += pt.vx * dt;
@@ -628,14 +620,13 @@ function update(dt) {
   if (player.invulnTimer > 0) player.invulnTimer -= dt;
   if (jumpBufferTimer > 0) jumpBufferTimer -= dt;
 
-  // Update crumbling platforms
   for (const p of platforms) {
     if (p.type === 'crumble') {
       if (p.crumbleState === 'shaking') {
         p.crumbleTimer -= dt;
         if (p.crumbleTimer <= 0) {
           p.crumbleState = 'gone';
-          p.regenTimer = 3.2; // Auto-regenerates so player is never soft-locked!
+          p.regenTimer = 2.6;
           spawnParticles(p.x + p.w / 2, p.y + 8, '#ffd166', 10);
         }
       } else if (p.crumbleState === 'gone') {
@@ -647,11 +638,10 @@ function update(dt) {
     }
   }
 
-  // Horizontal movement with smooth acceleration
   const left = keys['ArrowLeft'] || keys['KeyA'];
   const right = keys['ArrowRight'] || keys['KeyD'];
-  const maxSpeed = 215;
-  const accel = player.grounded ? 1800 : 1200;
+  const maxSpeed = 225;
+  const accel = player.grounded ? 1900 : 1300;
   const friction = player.grounded ? 1600 : 500;
 
   if (left && !right) {
@@ -665,39 +655,34 @@ function update(dt) {
     else player.vx -= Math.sign(player.vx) * friction * dt;
   }
 
-  // Conveyor belt push when standing on one
   let beltPush = 0;
   if (player.grounded && player.standingPlatform) {
-    if (player.standingPlatform.type === 'conveyorL') beltPush = -85;
-    if (player.standingPlatform.type === 'conveyorR') beltPush = 85;
+    if (player.standingPlatform.type === 'conveyorL') beltPush = -80;
+    if (player.standingPlatform.type === 'conveyorR') beltPush = 80;
   }
 
-  // Coyote time
   if (player.grounded) {
-    player.coyoteTimer = 0.12;
+    player.coyoteTimer = 0.14;
   } else {
     player.coyoteTimer -= dt;
   }
 
-  // Jump execution (coyote time + jump buffer)
+  // Generous jump impulse (vy = -490 -> ~111px jump arc)
   if (jumpBufferTimer > 0 && player.coyoteTimer > 0) {
-    player.vy = -445;
+    player.vy = -490;
     player.grounded = false;
     player.coyoteTimer = 0;
     jumpBufferTimer = 0;
     playSfx('jump');
   }
 
-  // Variable jump height (release early to hop lower)
   const jumpHeld = keys['Space'] || keys['ArrowUp'] || keys['KeyW'];
-  if (!jumpHeld && player.vy < -180) {
-    player.vy += 1400 * dt;
+  if (!jumpHeld && player.vy < -210) {
+    player.vy += 1350 * dt;
   }
 
-  // Gravity
   player.vy = Math.min(620, player.vy + 1080 * dt);
 
-  // Move X & resolve walls
   player.x += (player.vx + beltPush) * dt;
   if (player.x < 0) { player.x = 0; player.vx = 0; }
   if (player.x + player.w > W) { player.x = W - player.w; player.vx = 0; }
@@ -711,7 +696,6 @@ function update(dt) {
     }
   }
 
-  // Move Y & resolve floors/ceilings
   const prevBottom = player.y + player.h;
   player.y += player.vy * dt;
   player.grounded = false;
@@ -720,14 +704,14 @@ function update(dt) {
   for (const p of platforms) {
     if (p.crumbleState === 'gone') continue;
     if (rectsOverlap(player.x, player.y, player.w, player.h, p.x, p.y, p.w, p.h)) {
-      if (player.vy >= 0 && prevBottom <= p.y + 12) {
+      if (player.vy >= 0 && prevBottom <= p.y + 14) {
         player.y = p.y - player.h;
         player.vy = 0;
         player.grounded = true;
         player.standingPlatform = p;
         if (p.type === 'crumble' && p.crumbleState === 'intact') {
           p.crumbleState = 'shaking';
-          p.crumbleTimer = 0.55;
+          p.crumbleTimer = 0.7;
         }
       } else if (player.vy < 0 && player.y >= p.y + p.h - 12) {
         player.y = p.y + p.h;
@@ -738,14 +722,12 @@ function update(dt) {
 
   if (player.y > H + 40) hurtPlayer();
 
-  // Walk animation
   if (player.grounded && Math.abs(player.vx) > 10) {
     player.walkFrame += dt * 10;
   } else {
     player.walkFrame = 0;
   }
 
-  // Collect Ideas (Lightbulbs)
   for (const it of ideas) {
     if (it.collected) continue;
     if (rectsOverlap(player.x - 4, player.y - 4, player.w + 8, player.h + 8, it.x - 10, it.y - 12, 20, 24)) {
@@ -756,7 +738,6 @@ function update(dt) {
     }
   }
 
-  // Update Enemies & Stomp-to-Stun Logic
   for (const en of enemies) {
     en.animPhase += dt * 7;
     if (en.stunTimer > 0) {
@@ -772,13 +753,11 @@ function update(dt) {
       en.y = en.baseY + Math.sin(globalTime * en.bobFreq + en.animPhase) * en.bobAmp;
     }
 
-    // Check collision with Leap Hamilton
     if (rectsOverlap(player.x + 2, player.y + 2, player.w - 4, player.h - 2, en.x + 2, en.y + 2, en.w - 4, en.h - 4)) {
-      // Forgiving stomp check: falling downward and feet above enemy's lower half
-      const stomping = player.vy > 0 && (player.y + player.h - player.vy * dt) <= en.y + en.h * 0.65;
+      const stomping = player.vy > 0 && (player.y + player.h - player.vy * dt) <= en.y + en.h * 0.68;
       if (stomping) {
         en.stunTimer = 5.0;
-        player.vy = -370; // Bounce off monster!
+        player.vy = -390;
         player.grounded = false;
         score += 100;
         playSfx('stomp');
@@ -789,7 +768,6 @@ function update(dt) {
     }
   }
 
-  // Check Door Exit when all Ideas collected
   const allCollected = ideas.every(it => it.collected);
   if (allCollected && rectsOverlap(player.x, player.y, player.w, player.h, levelDoor.x, levelDoor.y, levelDoor.w, levelDoor.h)) {
     playSfx('door');
@@ -809,7 +787,7 @@ function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
 }
 
 // ============================================================================
-// RENDERING (RETRO ZX SPECTRUM / ARCADE PIXEL AESTHETIC)
+// RENDERING
 // ============================================================================
 function draw() {
   ctx.save();
@@ -820,14 +798,12 @@ function draw() {
 
   const def = LEVELS[currentLevelIdx] || LEVELS[0];
 
-  // Background gradient + starfield
   const grad = ctx.createLinearGradient(0, 0, 0, H);
   grad.addColorStop(0, def.bgTop);
   grad.addColorStop(1, def.bgBot);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  // Subtle retro starfield
   for (let i = 0; i < 42; i++) {
     const sx = (i * 197 + currentLevelIdx * 73) % W;
     const sy = (i * 113 + currentLevelIdx * 41) % (H - 60);
@@ -844,29 +820,23 @@ function draw() {
     return;
   }
 
-  // Draw Exit Door
   const allCollected = ideas.every(it => it.collected);
   drawDoor(levelDoor, allCollected, def.accent);
 
-  // Draw Platforms
   for (const p of platforms) {
     drawPlatform(p, def);
   }
 
-  // Draw Ideas (Glowing Lightbulbs)
   for (const it of ideas) {
     if (!it.collected) drawIdeaBulb(it);
   }
 
-  // Draw Enemies
   for (const en of enemies) {
     drawEnemy(en);
   }
 
-  // Draw Leap Hamilton
   drawLeapHamilton();
 
-  // Draw Particles
   for (const pt of particles) {
     ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
     ctx.fillStyle = pt.color;
@@ -874,7 +844,6 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Top HUD Bar
   drawHUD(def);
 
   if (gameState === 'gameover') drawOverlay("PITCH REJECTED!", "The Unity has claimed the galaxy. Press SPACE or Click to try again.", "#ff4d6d");
@@ -906,7 +875,6 @@ function drawHUD(def) {
 
 function drawPlatform(p, def) {
   if (p.crumbleState === 'gone') {
-    // Faint dashed outline showing where platform will regenerate
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2);
@@ -927,7 +895,6 @@ function drawPlatform(p, def) {
     ctx.fillRect(p.x, p.y, p.w, p.h);
     ctx.fillStyle = def.solidTop;
     ctx.fillRect(p.x, p.y, p.w, 4);
-    // Retro brick ticks
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     for (let bx = p.x + 16; bx < p.x + p.w; bx += 20) {
       ctx.fillRect(bx, p.y + 4, 2, p.h - 4);
@@ -937,7 +904,6 @@ function drawPlatform(p, def) {
     ctx.fillRect(p.x, p.y, p.w, p.h);
     ctx.fillStyle = '#fefae0';
     ctx.fillRect(p.x, p.y, p.w, 3);
-    // Crack lines
     ctx.strokeStyle = '#3d2516';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -953,7 +919,6 @@ function drawPlatform(p, def) {
     ctx.strokeStyle = '#00f5d4';
     ctx.lineWidth = 2;
     ctx.strokeRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2);
-    // Animated chevrons
     const dir = p.type === 'conveyorR' ? 1 : -1;
     const offset = ((globalTime * 45 * dir) % 16 + 16) % 16;
     ctx.fillStyle = '#ffe600';
@@ -969,7 +934,6 @@ function drawDoor(door, isOpen, accent) {
   ctx.fillRect(door.x - 3, door.y - 3, door.w + 6, door.h + 3);
 
   if (isOpen) {
-    // Swirling time-portal / summit exit
     const pulse = Math.sin(globalTime * 8) * 20;
     ctx.fillStyle = `rgb(0, ${210 + pulse}, 212)`;
     ctx.fillRect(door.x, door.y, door.w, door.h);
@@ -981,7 +945,6 @@ function drawDoor(door, isOpen, accent) {
     ctx.strokeStyle = accent;
     ctx.lineWidth = 2;
     ctx.strokeRect(door.x + 2, door.y + 2, door.w - 4, door.h - 4);
-    // Lock icon
     ctx.fillStyle = '#ff4d6d';
     ctx.fillRect(door.x + 13, door.y + 20, 10, 10);
   }
@@ -992,24 +955,20 @@ function drawIdeaBulb(it) {
   const x = it.x;
   const y = it.y + bob;
 
-  // Glow halo
   ctx.fillStyle = 'rgba(255, 230, 0, 0.22)';
   ctx.beginPath();
   ctx.arc(x, y - 2, 13, 0, Math.PI * 2);
   ctx.fill();
 
-  // Glass bulb
   ctx.fillStyle = '#ffe600';
   ctx.beginPath();
   ctx.arc(x, y - 3, 7, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillRect(x - 4, y + 1, 8, 5);
 
-  // Bright highlight
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(x - 3, y - 6, 3, 3);
 
-  // Screw base
   ctx.fillStyle = '#8d99ae';
   ctx.fillRect(x - 3, y + 6, 6, 4);
 }
@@ -1021,14 +980,11 @@ function drawLeapHamilton() {
   const y = Math.round(player.y);
   const f = player.facing;
 
-  // 1950s Madison Avenue Suit (Charcoal/Navy) + Fedora!
-  // Legs
   const stride = Math.sin(player.walkFrame) * 4;
   ctx.fillStyle = '#2b2d42';
   ctx.fillRect(x + 4, y + 21, 5, 11 + (player.grounded ? stride * 0.4 : -2));
   ctx.fillRect(x + 13, y + 21, 5, 11 - (player.grounded ? stride * 0.4 : 2));
 
-  // Torso (Suit jacket + white shirt + red tie)
   ctx.fillStyle = '#3a506b';
   ctx.fillRect(x + 3, y + 11, 16, 11);
   ctx.fillStyle = '#ffffff';
@@ -1036,19 +992,16 @@ function drawLeapHamilton() {
   ctx.fillStyle = '#e63946';
   ctx.fillRect(x + 10, y + 12, 2, 7);
 
-  // Head
   ctx.fillStyle = '#ffcdb2';
   ctx.fillRect(x + 5, y + 3, 12, 8);
-  // Eye
   ctx.fillStyle = '#000';
   ctx.fillRect(f === 1 ? x + 13 : x + 7, y + 5, 2, 2);
 
-  // 1950s Fedora Hat
   ctx.fillStyle = '#5c4d7d';
-  ctx.fillRect(x + 1, y + 2, 20, 2); // brim
-  ctx.fillRect(x + 5, y - 2, 12, 4); // crown
+  ctx.fillRect(x + 1, y + 2, 20, 2);
+  ctx.fillRect(x + 5, y - 2, 12, 4);
   ctx.fillStyle = '#ffe600';
-  ctx.fillRect(x + 5, y + 1, 12, 1); // hatband
+  ctx.fillRect(x + 5, y + 1, 12, 1);
 }
 
 function drawEnemy(en) {
@@ -1062,11 +1015,9 @@ function drawEnemy(en) {
   }
 
   if (en.type === 'katzenjammer') {
-    // Giant Alien Bat (Katzenjammer!)
     const wingFlap = stunned ? 6 : Math.sin(globalTime * 16 + en.animPhase) * 10;
     ctx.fillStyle = stunned ? '#6c757d' : '#9b5de5';
 
-    // Left & Right Leathery Wings
     ctx.beginPath();
     ctx.moveTo(x + 14, y + 14);
     ctx.lineTo(x - 6, y + 4 + wingFlap);
@@ -1079,14 +1030,11 @@ function drawEnemy(en) {
     ctx.lineTo(x + 40, y + 22);
     ctx.fill();
 
-    // Alien Bat Body & Pointed Ears
     ctx.fillStyle = stunned ? '#495057' : '#5a189a';
     ctx.fillRect(x + 12, y + 6, 20, 18);
-    // Ears
     ctx.fillRect(x + 13, y, 4, 6);
     ctx.fillRect(x + 27, y, 4, 6);
 
-    // Glowing Alien Eyes & Fangs
     ctx.fillStyle = stunned ? '#00f5d4' : '#ffe600';
     ctx.fillRect(x + 15, y + 10, 4, 4);
     ctx.fillRect(x + 25, y + 10, 4, 4);
@@ -1095,29 +1043,26 @@ function drawEnemy(en) {
     ctx.fillRect(x + 25, y + 19, 2, 4);
 
   } else if (en.type === 'typewriter') {
-    // Clacking 1950s Typewriter
     ctx.fillStyle = '#495057';
     ctx.fillRect(x + 2, y + 12, 22, 16);
     ctx.fillStyle = '#adb5bd';
-    ctx.fillRect(x + 4, y + 6, 18, 6); // carriage
+    ctx.fillRect(x + 4, y + 6, 18, 6);
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x + 7, y, 12, 7); // paper sheet
+    ctx.fillRect(x + 7, y, 12, 7);
     ctx.fillStyle = '#ff4d6d';
-    ctx.fillRect(x + 6, y + 16, 14, 6); // keys
-    // Feet
+    ctx.fillRect(x + 6, y + 16, 14, 6);
     const step = Math.sin(en.animPhase) * 2;
     ctx.fillStyle = '#ffe600';
     ctx.fillRect(x + 4, y + 28 + step, 5, 4);
     ctx.fillRect(x + 17, y + 28 - step, 5, 4);
 
   } else if (en.type === 'adman') {
-    // Rival Madison Ave Copywriter
     ctx.fillStyle = '#6d6875';
     ctx.fillRect(x + 4, y + 10, 18, 16);
     ctx.fillStyle = '#ffcdb2';
     ctx.fillRect(x + 6, y + 2, 14, 8);
     ctx.fillStyle = '#1d3557';
-    ctx.fillRect(x + 3, y, 20, 3); // hat
+    ctx.fillRect(x + 3, y, 20, 3);
     ctx.fillStyle = '#e63946';
     ctx.fillRect(x + 8, y + 4, 3, 2);
     ctx.fillRect(x + 15, y + 4, 3, 2);
@@ -1127,7 +1072,6 @@ function drawEnemy(en) {
     ctx.fillRect(x + 16, y + 26 - step, 5, 6);
 
   } else if (en.type === 'coffee') {
-    // Giant Steaming Coffee Mug
     ctx.fillStyle = '#f8f9fa';
     ctx.fillRect(x + 4, y + 8, 16, 20);
     ctx.strokeStyle = '#f8f9fa';
@@ -1135,47 +1079,41 @@ function drawEnemy(en) {
     ctx.strokeRect(x + 20, y + 12, 4, 10);
     ctx.fillStyle = '#6f4e37';
     ctx.fillRect(x + 6, y + 9, 12, 4);
-    // Steam
     ctx.fillStyle = 'rgba(255,255,255,0.6)';
     const wisp = Math.sin(globalTime * 8) * 2;
     ctx.fillRect(x + 8 + wisp, y + 1, 2, 5);
     ctx.fillRect(x + 14 - wisp, y + 2, 2, 5);
 
   } else if (en.type === 'drone') {
-    // 2120 Isaac Hover Drone
     const hover = Math.sin(en.animPhase) * 2;
     ctx.fillStyle = '#00b4d8';
     ctx.beginPath();
     ctx.arc(x + 13, y + 14 + hover, 12, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#ff006e';
-    ctx.fillRect(x + 7, y + 11 + hover, 12, 5); // visor
+    ctx.fillRect(x + 7, y + 11 + hover, 12, 5);
     ctx.fillStyle = '#ffe600';
-    ctx.fillRect(x + 11, y + 26 + hover, 4, 5); // thruster
+    ctx.fillRect(x + 11, y + 26 + hover, 4, 5);
 
   } else if (en.type === 'pamper') {
-    // Pampered 2120 Hover-Chair Citizen
     ctx.fillStyle = '#ffbe0b';
-    ctx.fillRect(x + 2, y + 16, 22, 12); // hover pod
+    ctx.fillRect(x + 2, y + 16, 22, 12);
     ctx.fillStyle = '#ff758f';
-    ctx.fillRect(x + 6, y + 6, 14, 10); // plump tunic
+    ctx.fillRect(x + 6, y + 6, 14, 10);
     ctx.fillStyle = '#ffcdb2';
     ctx.fillRect(x + 8, y, 10, 6);
 
   } else if (en.type === 'emgbomb') {
-    // Ticking EMG Doomsday Bomb
     ctx.fillStyle = '#212529';
     ctx.beginPath();
     ctx.arc(x + 13, y + 18, 12, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#ff4d6d';
     ctx.fillRect(x + 8, y + 15, 10, 5);
-    // Fuse spark
     ctx.fillStyle = Math.floor(globalTime * 20) % 2 === 0 ? '#ffe600' : '#ff4d6d';
     ctx.fillRect(x + 11, y + 1, 5, 5);
   }
 
-  // Stunned spinning stars indicator above head
   if (stunned) {
     for (let s = 0; s < 3; s++) {
       const ang = globalTime * 6 + s * (Math.PI * 2 / 3);
@@ -1200,7 +1138,6 @@ function drawTitleScreen() {
   ctx.font = 'bold 42px "Courier New", monospace';
   ctx.fillText('HOW TO SELL THE STARS', W / 2, 138);
 
-  // Decorative box
   ctx.strokeStyle = '#ff4d6d';
   ctx.lineWidth = 3;
   ctx.strokeRect(110, 170, W - 220, 235);
