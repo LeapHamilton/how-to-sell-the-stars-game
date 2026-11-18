@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOW TO SELL THE STARS - A Manic Platformer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background-color: #08080f;
+    color: #f0f0f0;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  #wrapper {
+    background: #11111e;
+    border: 4px solid #3c3c64;
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 0 35px rgba(0, 210, 255, 0.18);
+    max-width: 840px;
+    width: 100%;
+  }
+  #topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .title-badge {
+    font-weight: bold;
+    color: #ffe600;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px #000;
+  }
+  .controls-bar {
+    display: flex;
+    gap: 8px;
+  }
+  button {
+    background: #22223b;
+    color: #00f5d4;
+    border: 2px solid #00f5d4;
+    padding: 5px 11px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+  }
+  button:hover {
+    background: #00f5d4;
+    color: #0a0a14;
+  }
+  button.secondary {
+    color: #ffd166;
+    border-color: #ffd166;
+  }
+  button.secondary:hover {
+    background: #ffd166;
+    color: #0a0a14;
+  }
+  #gameContainer {
+    position: relative;
+    width: 800px;
+    height: 540px;
+    margin: 0 auto;
+    background: #000;
+    border: 3px solid #222;
+  }
+  canvas {
+    display: block;
+    width: 800px;
+    height: 540px;
+    image-rendering: pixelated;
+  }
+  #footer-help {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #a0a0c0;
+  }
+  kbd {
+    background: #252540;
+    border: 1px solid #555580;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <div id="topbar">
+    <div class="title-badge">★ HOW TO SELL THE STARS ★</div>
+    <div class="controls-bar">
+      <button id="musicBtn" onclick="toggleMusic()">🎵 MUSIC: ON (M)</button>
+      <button class="secondary" onclick="downloadSelf()">⬇ SAVE GAME (.HTML)</button>
+    </div>
+  </div>
+  <div id="gameContainer">
+    <canvas id="game" width="800" height="540"></canvas>
+  </div>
+  <div id="footer-help">
+    <div>Move: <kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> &nbsp;|&nbsp; Jump: <kbd>Space</kbd> / <kbd>↑</kbd> / <kbd>W</kbd></div>
+    <div>Stomp monsters to stun! &nbsp;|&nbsp; Mute: <kbd>M</kbd> &nbsp;|&nbsp; Restart: <kbd>R</kbd></div>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// PROKOFIEV - DANCE OF THE KNIGHTS (OPENING MARCH & FAMOUS MAIN THEME)
+// ============================================================================
+let audioCtx = null;
+let musicEnabled = true;
+let musicInterval = null;
+let musicStep = 0;
+
+// Frequency helper (MIDI note number to Hz)
+function mtof(m) {
+  return 440 * Math.pow(2, (m - 69) / 12);
+}
+
+// Iconic opening section of Prokofiev's Dance of the Knights (E minor, 4/4 Pesante)
+// 1 step = 1 eighth note (~250ms -> ~120 BPM)
+// Format: [bassMidi, leadMidi, leadDurationSteps]
+const PROKOFIEV_SCORE = [
+  // Bars 1-2: Famous heavy stomping low-string ostinato (E2 - B2 - G2 - B2)
+  [40, null, 0], [null, null, 0], [47, null, 0], [null, null, 0],
+  [43, null, 0], [null, null, 0], [47, null, 0], [null, null, 0],
+  [40, null, 0], [null, null, 0], [47, null, 0], [null, null, 0],
+  [43, null, 0], [null, null, 0], [47, null, 0], [null, null, 0],
+
+  // Bar 3: Bold Brass Melody enters on beat 1! (E4 dotted-quarter, D4 eighth, B3 quarter, G3 quarter)
+  [40, 64, 3],   [null, null, 0], [47, null, 0], [null, 62, 1],
+  [43, 59, 2],   [null, null, 0], [47, 55, 2],   [null, null, 0],
+
+  // Bar 4: (F#3 dotted-quarter, E3 eighth, B3 half)
+  [40, 54, 3],   [null, null, 0], [47, null, 0], [null, 52, 1],
+  [43, 59, 4],   [null, null, 0], [47, null, 0], [null, null, 0],
+
+  // Bar 5: Second phrase leaping up (G4 dotted-quarter, F#4 eighth, D4 quarter, B3 quarter)
+  [40, 67, 3],   [null, null, 0], [47, null, 0], [null, 66, 1],
+  [43, 62, 2],   [null, null, 0], [47, 59, 2],   [null, null, 0],
+
+  // Bar 6: (A#3 dotted-quarter, B3 eighth, D#4 half)
+  [42, 58, 3],   [null, null, 0], [47, null, 0], [null, 59, 1],
+  [35, 63, 4],   [null, null, 0], [42, null, 0], [null, null, 0],
+
+  // Bar 7: High dramatic peak! (B4 dotted-quarter, A4 eighth, F#4 quarter, D#4 quarter)
+  [40, 71, 3],   [null, null, 0], [47, null, 0], [null, 69, 1],
+  [43, 66, 2],   [null, null, 0], [47, 63, 2],   [null, null, 0],
+
+  // Bar 8: Chromatic turn (E4 dotted-quarter, C4 eighth, A3 quarter, F#3 quarter)
+  [45, 64, 3],   [null, null, 0], [52, null, 0], [null, 60, 1],
+  [45, 57, 2],   [null, null, 0], [42, 54, 2],   [null, null, 0],
+
+  // Bar 9: Cadence descent (G3 quarter, F#3 quarter, E3 quarter, D#3 quarter)
+  [40, 55, 2],   [null, null, 0], [47, 54, 2],   [null, null, 0],
+  [35, 52, 2],   [null, null, 0], [47, 51, 2],   [null, null, 0],
+
+  // Bar 10: Resolve to E3 + stomp turnaround
+  [40, 52, 4],   [null, null, 0], [47, null, 0], [null, null, 0],
+  [43, null, 0], [null, null, 0], [47, null, 0], [null, null, 0]
+];
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playNote(freq, duration, type, volume, detune = 0) {
+  if (!audioCtx || !musicEnabled) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now);
+  if (detune) osc.detune.setValueAtTime(detune, now);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(type === 'sawtooth' ? 1400 : 800, now);
+
+  gain.gain.setValueAtTime(0.001, now);
+  gain.gain.linearRampToValueAtTime(volume, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(now);
+  osc.stop(now + duration + 0.03);
+}
+
+function playSfx(kind) {
+  if (!audioCtx || !musicEnabled) return;
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if (kind === 'jump') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(190, now);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 0.14);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.start(now);
+    osc.stop(now + 0.16);
+  } else if (kind === 'idea') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(587.33, now);
+    osc.frequency.setValueAtTime(880, now + 0.07);
+    osc.frequency.setValueAtTime(1174.66, now + 0.14);
+    gain.gain.setValueAtTime(0.11, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    osc.start(now);
+    osc.stop(now + 0.29);
+  } else if (kind === 'stomp') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(95, now + 0.16);
+    gain.gain.setValueAtTime(0.11, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+    osc.start(now);
+    osc.stop(now + 0.18);
+  } else if (kind === 'hurt') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.linearRampToValueAtTime(65, now + 0.35);
+    gain.gain.setValueAtTime(0.13, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+    osc.start(now);
+    osc.stop(now + 0.37);
+  } else if (kind === 'door') {
+    osc.type = 'square';
+    [440, 554.37, 659.25, 880].forEach((f, idx) => {
+      osc.frequency.setValueAtTime(f, now + idx * 0.08);
+    });
+    gain.gain.setValueAtTime(0.09, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+    osc.start(now);
+    osc.stop(now + 0.39);
+  }
+}
+
+function startMusicLoop() {
+  if (musicInterval) clearInterval(musicInterval);
+  const stepMs = 245; // Heavy, dramatic pesante tempo
+  musicInterval = setInterval(() => {
+    if (!musicEnabled || !audioCtx || audioCtx.state !== 'running') return;
+    const [bass, lead, durSteps] = PROKOFIEV_SCORE[musicStep % PROKOFIEV_SCORE.length];
+    if (bass !== null) {
+      // Heavy low-string / tuba stomp
+      playNote(mtof(bass), 0.36, 'triangle', 0.13);
+      playNote(mtof(bass - 12), 0.34, 'sawtooth', 0.05);
+    }
+    if (lead !== null) {
+      // Bold brass melody
+      const dur = Math.max(0.22, durSteps * (stepMs / 1000) * 0.92);
+      playNote(mtof(lead), dur, 'sawtooth', 0.075);
+      playNote(mtof(lead), dur, 'square', 0.035, 6);
+    }
+    musicStep++;
+  }, stepMs);
+}
+
+function toggleMusic() {
+  initAudio();
+  musicEnabled = !musicEnabled;
+  const btn = document.getElementById('musicBtn');
+  btn.textContent = musicEnabled ? '🎵 MUSIC: ON (M)' : '🔇 MUSIC: OFF (M)';
+}
+
+function downloadSelf() {
+  const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'how_to_sell_the_stars.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ============================================================================
+// GAME ENGINE & LEVEL DATA
+// ============================================================================
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = 800;
+const H = 540;
+
+const keys = {};
+let jumpBufferTimer = 0;
+
+window.addEventListener('keydown', (e) => {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+    e.preventDefault();
+  }
+  initAudio();
+  if (!keys[e.code]) {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+      jumpBufferTimer = 0.14;
+      if (gameState === 'title') startGame();
+      else if (gameState === 'gameover' || gameState === 'victory') startGame();
+    }
+    if (e.code === 'KeyM') toggleMusic();
+    if (e.code === 'KeyR' && gameState === 'playing') loadLevel(currentLevelIdx);
+  }
+  keys[e.code] = true;
+});
+
+window.addEventListener('keyup', (e) => {
+  keys[e.code] = false;
+});
+
+canvas.addEventListener('click', () => {
+  initAudio();
+  if (gameState === 'title' || gameState === 'gameover' || gameState === 'victory') {
+    startGame();
+  }
+});
+
+// Platform types: 'solid', 'crumble', 'conveyorL', 'conveyorR'
+const LEVELS = [
+  // ==========================================================================
+  // LEVEL 1: 1950s KNUCKLEVILLE AD AGENCY
+  // ==========================================================================
+  {
+    name: "STAGE 1: 1950s KNUCKLEVILLE AD AGENCY",
+    subtitle: "Pitch the stars before 5 PM! Collect all 6 Bright Ideas.",
+    bgTop: "#141829",
+    bgBot: "#262b44",
+    accent: "#ffbe0b",
+    solidColor: "#8d5524",
+    solidTop: "#e09f3e",
+    spawn: { x: 48, y: 452 },
+    door: { x: 726, y: 66, w: 36, h: 48 },
+    platforms: [
+      // Ground floor
+      { x: 0, y: 500, w: 800, h: 40, type: 'solid' },
+      // Tier 1
+      { x: 140, y: 425, w: 140, h: 16, type: 'solid' },
+      { x: 340, y: 425, w: 120, h: 16, type: 'crumble' },
+      { x: 530, y: 410, w: 180, h: 16, type: 'conveyorL' },
+      // Tier 2
+      { x: 640, y: 330, w: 130, h: 16, type: 'solid' },
+      { x: 420, y: 320, w: 150, h: 16, type: 'solid' },
+      { x: 220, y: 325, w: 130, h: 16, type: 'crumble' },
+      { x: 30,  y: 310, w: 140, h: 16, type: 'solid' },
+      // Tier 3
+      { x: 150, y: 225, w: 170, h: 16, type: 'conveyorR' },
+      { x: 390, y: 215, w: 110, h: 16, type: 'crumble' },
+      { x: 560, y: 215, w: 180, h: 16, type: 'solid' },
+      // Top Tier (Portal to 2120)
+      { x: 360, y: 125, w: 140, h: 16, type: 'crumble' },
+      { x: 130, y: 125, w: 150, h: 16, type: 'solid' },
+      { x: 570, y: 114, w: 205, h: 16, type: 'solid' }
+    ],
+    ideas: [
+      { x: 205, y: 390 },
+      { x: 615, y: 375 },
+      { x: 90,  y: 275 },
+      { x: 485, y: 285 },
+      { x: 225, y: 190 },
+      { x: 195, y: 90 }
+    ],
+    enemies: [
+      { type: 'typewriter', x: 340, y: 468, minX: 240, maxX: 560, vx: 110 },
+      { type: 'adman',      x: 440, y: 284, minX: 425, maxX: 545, vx: 95 },
+      { type: 'coffee',     x: 580, y: 183, minX: 565, maxX: 715, vx: 125 },
+      { type: 'adman',      x: 150, y: 89,  minX: 135, maxX: 255, vx: 85 }
+    ]
+  },
+
+  // ==========================================================================
+  // LEVEL 2: ISAAC'S 2120 AUTOMATED UTOPIA
+  // ==========================================================================
+  {
+    name: "STAGE 2: ISAAC'S 2120 UTOPIA",
+    subtitle: "Bypass Isaac's pampering drones! Collect all 7 Bright Ideas.",
+    bgTop: "#081c24",
+    bgBot: "#113847",
+    accent: "#00f5d4",
+    solidColor: "#2b5876",
+    solidTop: "#00f5d4",
+    spawn: { x: 42, y: 452 },
+    door: { x: 42, y: 66, w: 36, h: 48 },
+    platforms: [
+      // Ground
+      { x: 0, y: 500, w: 800, h: 40, type: 'solid' },
+      // Tier 1
+      { x: 180, y: 425, w: 120, h: 16, type: 'crumble' },
+      { x: 360, y: 410, w: 160, h: 16, type: 'conveyorR' },
+      { x: 580, y: 395, w: 180, h: 16, type: 'solid' },
+      // Tier 2
+      { x: 420, y: 315, w: 115, h: 16, type: 'crumble' },
+      { x: 200, y: 310, w: 160, h: 16, type: 'conveyorL' },
+      { x: 30,  y: 295, w: 120, h: 16, type: 'solid' },
+      // Tier 3
+      { x: 180, y: 215, w: 110, h: 16, type: 'crumble' },
+      { x: 350, y: 205, w: 170, h: 16, type: 'solid' },
+      { x: 580, y: 205, w: 160, h: 16, type: 'conveyorL' },
+      // Tier 4
+      { x: 410, y: 125, w: 120, h: 16, type: 'crumble' },
+      { x: 220, y: 120, w: 120, h: 16, type: 'crumble' },
+      { x: 25,  y: 114, w: 145, h: 16, type: 'solid' }
+    ],
+    ideas: [
+      { x: 435, y: 375 },
+      { x: 675, y: 360 },
+      { x: 85,  y: 260 },
+      { x: 275, y: 275 },
+      { x: 430, y: 170 },
+      { x: 660, y: 170 },
+      { x: 275, y: 85 }
+    ],
+    enemies: [
+      { type: 'drone',   x: 320, y: 464, minX: 210, maxX: 620, vx: 135 },
+      { type: 'pamper',  x: 600, y: 359, minX: 585, maxX: 730, vx: 90 },
+      { type: 'drone',   x: 220, y: 274, minX: 205, maxX: 335, vx: 120 },
+      { type: 'pamper',  x: 370, y: 169, minX: 355, maxX: 490, vx: 105 },
+      { type: 'drone',   x: 600, y: 169, minX: 585, maxX: 710, vx: 140 }
+    ]
+  },
+
+  // ==========================================================================
+  // LEVEL 3: THE UNITY GALACTIC TRADE SUMMIT (FEATURING THE KATZENJAMMERS!)
+  // ==========================================================================
+  {
+    name: "STAGE 3: UNITY SUMMIT & THE KATZENJAMMERS",
+    subtitle: "Outsmart the giant alien Katzenjammer bats! Collect all 8 Ideas.",
+    bgTop: "#1a0926",
+    bgBot: "#32124a",
+    accent: "#ff4d6d",
+    solidColor: "#4a1c6b",
+    solidTop: "#ff758f",
+    spawn: { x: 44, y: 452 },
+    door: { x: 732, y: 66, w: 36, h: 48 },
+    platforms: [
+      // Ground
+      { x: 0, y: 500, w: 800, h: 40, type: 'solid' },
+      // Tier 1
+      { x: 160, y: 425, w: 110, h: 16, type: 'crumble' },
+      { x: 330, y: 415, w: 140, h: 16, type: 'conveyorL' },
+      { x: 540, y: 405, w: 110, h: 16, type: 'crumble' },
+      { x: 690, y: 380, w: 90,  h: 16, type: 'solid' },
+      // Tier 2
+      { x: 490, y: 310, w: 140, h: 16, type: 'solid' },
+      { x: 280, y: 310, w: 120, h: 16, type: 'crumble' },
+      { x: 60,  y: 300, w: 150, h: 16, type: 'conveyorR' },
+      // Tier 3
+      { x: 180, y: 210, w: 110, h: 16, type: 'crumble' },
+      { x: 360, y: 205, w: 150, h: 16, type: 'solid' },
+      { x: 575, y: 205, w: 110, h: 16, type: 'crumble' },
+      // Top Summit
+      { x: 420, y: 120, w: 120, h: 16, type: 'conveyorR' },
+      { x: 210, y: 120, w: 120, h: 16, type: 'crumble' },
+      { x: 615, y: 114, w: 165, h: 16, type: 'solid' }
+    ],
+    ideas: [
+      { x: 395, y: 380 },
+      { x: 730, y: 345 },
+      { x: 125, y: 265 },
+      { x: 555, y: 275 },
+      { x: 230, y: 175 },
+      { x: 430, y: 170 },
+      { x: 265, y: 85 },
+      { x: 635, y: 80 }
+    ],
+    enemies: [
+      // Giant alien Katzenjammer bats + ticking EMG bombs!
+      { type: 'emgbomb',      x: 340, y: 468, minX: 220, maxX: 620, vx: 130 },
+      { type: 'katzenjammer', x: 520, y: 335, minX: 430, maxX: 730, vx: 135, baseY: 335, bobAmp: 18, bobFreq: 4.2 },
+      { type: 'katzenjammer', x: 140, y: 245, minX: 50,  maxX: 340, vx: 145, baseY: 245, bobAmp: 22, bobFreq: 4.8 },
+      { type: 'emgbomb',      x: 380, y: 173, minX: 365, maxX: 485, vx: 110 },
+      { type: 'katzenjammer', x: 480, y: 135, minX: 210, maxX: 640, vx: 155, baseY: 135, bobAmp: 20, bobFreq: 5.0 }
+    ]
+  }
+];
+
+// ============================================================================
+// RUNTIME STATE
+// ============================================================================
+let gameState = 'title'; // 'title', 'playing', 'gameover', 'victory'
+let currentLevelIdx = 0;
+let score = 0;
+let lives = 5;
+let globalTime = 0;
+let screenShake = 0;
+let particles = [];
+
+let player = {
+  x: 50, y: 400, w: 22, h: 32,
+  vx: 0, vy: 0,
+  grounded: false,
+  coyoteTimer: 0,
+  facing: 1,
+  walkFrame: 0,
+  invulnTimer: 0
+};
+
+let platforms = [];
+let ideas = [];
+let enemies = [];
+let levelDoor = null;
+
+function startGame() {
+  score = 0;
+  lives = 5;
+  currentLevelIdx = 0;
+  loadLevel(0);
+  gameState = 'playing';
+  startMusicLoop();
+}
+
+function loadLevel(idx) {
+  const def = LEVELS[idx];
+  player.x = def.spawn.x;
+  player.y = def.spawn.y;
+  player.vx = 0;
+  player.vy = 0;
+  player.grounded = false;
+  player.coyoteTimer = 0;
+  player.invulnTimer = 1.2;
+
+  platforms = def.platforms.map(p => ({
+    ...p,
+    crumbleState: 'intact', // 'intact', 'shaking', 'gone'
+    crumbleTimer: 0,
+    regenTimer: 0
+  }));
+
+  ideas = def.ideas.map((it, i) => ({
+    x: it.x,
+    y: it.y,
+    collected: false,
+    phase: i * 0.9
+  }));
+
+  enemies = def.enemies.map(en => {
+    const isBat = en.type === 'katzenjammer';
+    return {
+      ...en,
+      w: isBat ? 44 : 26,
+      h: isBat ? 28 : 32,
+      dir: 1,
+      stunTimer: 0,
+      animPhase: Math.random() * Math.PI * 2
+    };
+  });
+
+  levelDoor = { ...def.door };
+  particles = [];
+}
+
+function spawnParticles(x, y, color, count = 12) {
+  for (let i = 0; i < count; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 40 + Math.random() * 140;
+    particles.push({
+      x, y,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd - 40,
+      life: 0.4 + Math.random() * 0.35,
+      maxLife: 0.75,
+      color,
+      size: 3 + Math.random() * 3
+    });
+  }
+}
+
+function hurtPlayer() {
+  if (player.invulnTimer > 0) return;
+  playSfx('hurt');
+  screenShake = 0.3;
+  spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ff4d6d', 20);
+  lives--;
+  if (lives <= 0) {
+    gameState = 'gameover';
+  } else {
+    const def = LEVELS[currentLevelIdx];
+    player.x = def.spawn.x;
+    player.y = def.spawn.y;
+    player.vx = 0;
+    player.vy = 0;
+    player.invulnTimer = 2.0;
+  }
+}
+
+// ============================================================================
+// UPDATE LOOP (FORGIVING PLATFORMER PHYSICS)
+// ============================================================================
+function update(dt) {
+  globalTime += dt;
+  if (screenShake > 0) screenShake = Math.max(0, screenShake - dt);
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const pt = particles[i];
+    pt.x += pt.vx * dt;
+    pt.y += pt.vy * dt;
+    pt.vy += 350 * dt;
+    pt.life -= dt;
+    if (pt.life <= 0) particles.splice(i, 1);
+  }
+
+  if (gameState !== 'playing') return;
+
+  if (player.invulnTimer > 0) player.invulnTimer -= dt;
+  if (jumpBufferTimer > 0) jumpBufferTimer -= dt;
+
+  // Update crumbling platforms
+  for (const p of platforms) {
+    if (p.type === 'crumble') {
+      if (p.crumbleState === 'shaking') {
+        p.crumbleTimer -= dt;
+        if (p.crumbleTimer <= 0) {
+          p.crumbleState = 'gone';
+          p.regenTimer = 3.2; // Auto-regenerates so player is never soft-locked!
+          spawnParticles(p.x + p.w / 2, p.y + 8, '#ffd166', 10);
+        }
+      } else if (p.crumbleState === 'gone') {
+        p.regenTimer -= dt;
+        if (p.regenTimer <= 0) {
+          p.crumbleState = 'intact';
+        }
+      }
+    }
+  }
+
+  // Horizontal movement with smooth acceleration
+  const left = keys['ArrowLeft'] || keys['KeyA'];
+  const right = keys['ArrowRight'] || keys['KeyD'];
+  const maxSpeed = 215;
+  const accel = player.grounded ? 1800 : 1200;
+  const friction = player.grounded ? 1600 : 500;
+
+  if (left && !right) {
+    player.vx = Math.max(-maxSpeed, player.vx - accel * dt);
+    player.facing = -1;
+  } else if (right && !left) {
+    player.vx = Math.min(maxSpeed, player.vx + accel * dt);
+    player.facing = 1;
+  } else {
+    if (Math.abs(player.vx) <= friction * dt) player.vx = 0;
+    else player.vx -= Math.sign(player.vx) * friction * dt;
+  }
+
+  // Conveyor belt push when standing on one
+  let beltPush = 0;
+  if (player.grounded && player.standingPlatform) {
+    if (player.standingPlatform.type === 'conveyorL') beltPush = -85;
+    if (player.standingPlatform.type === 'conveyorR') beltPush = 85;
+  }
+
+  // Coyote time
+  if (player.grounded) {
+    player.coyoteTimer = 0.12;
+  } else {
+    player.coyoteTimer -= dt;
+  }
+
+  // Jump execution (coyote time + jump buffer)
+  if (jumpBufferTimer > 0 && player.coyoteTimer > 0) {
+    player.vy = -445;
+    player.grounded = false;
+    player.coyoteTimer = 0;
+    jumpBufferTimer = 0;
+    playSfx('jump');
+  }
+
+  // Variable jump height (release early to hop lower)
+  const jumpHeld = keys['Space'] || keys['ArrowUp'] || keys['KeyW'];
+  if (!jumpHeld && player.vy < -180) {
+    player.vy += 1400 * dt;
+  }
+
+  // Gravity
+  player.vy = Math.min(620, player.vy + 1080 * dt);
+
+  // Move X & resolve walls
+  player.x += (player.vx + beltPush) * dt;
+  if (player.x < 0) { player.x = 0; player.vx = 0; }
+  if (player.x + player.w > W) { player.x = W - player.w; player.vx = 0; }
+
+  for (const p of platforms) {
+    if (p.crumbleState === 'gone') continue;
+    if (rectsOverlap(player.x, player.y, player.w, player.h, p.x, p.y, p.w, p.h)) {
+      if (player.vx + beltPush > 0) player.x = p.x - player.w;
+      else if (player.vx + beltPush < 0) player.x = p.x + p.w;
+      player.vx = 0;
+    }
+  }
+
+  // Move Y & resolve floors/ceilings
+  const prevBottom = player.y + player.h;
+  player.y += player.vy * dt;
+  player.grounded = false;
+  player.standingPlatform = null;
+
+  for (const p of platforms) {
+    if (p.crumbleState === 'gone') continue;
+    if (rectsOverlap(player.x, player.y, player.w, player.h, p.x, p.y, p.w, p.h)) {
+      if (player.vy >= 0 && prevBottom <= p.y + 12) {
+        player.y = p.y - player.h;
+        player.vy = 0;
+        player.grounded = true;
+        player.standingPlatform = p;
+        if (p.type === 'crumble' && p.crumbleState === 'intact') {
+          p.crumbleState = 'shaking';
+          p.crumbleTimer = 0.55;
+        }
+      } else if (player.vy < 0 && player.y >= p.y + p.h - 12) {
+        player.y = p.y + p.h;
+        player.vy = 0;
+      }
+    }
+  }
+
+  if (player.y > H + 40) hurtPlayer();
+
+  // Walk animation
+  if (player.grounded && Math.abs(player.vx) > 10) {
+    player.walkFrame += dt * 10;
+  } else {
+    player.walkFrame = 0;
+  }
+
+  // Collect Ideas (Lightbulbs)
+  for (const it of ideas) {
+    if (it.collected) continue;
+    if (rectsOverlap(player.x - 4, player.y - 4, player.w + 8, player.h + 8, it.x - 10, it.y - 12, 20, 24)) {
+      it.collected = true;
+      score += 150;
+      playSfx('idea');
+      spawnParticles(it.x, it.y, '#ffe600', 14);
+    }
+  }
+
+  // Update Enemies & Stomp-to-Stun Logic
+  for (const en of enemies) {
+    en.animPhase += dt * 7;
+    if (en.stunTimer > 0) {
+      en.stunTimer = Math.max(0, en.stunTimer - dt);
+      continue;
+    }
+
+    en.x += en.vx * en.dir * dt;
+    if (en.x <= en.minX) { en.x = en.minX; en.dir = 1; }
+    if (en.x + en.w >= en.maxX) { en.x = en.maxX - en.w; en.dir = -1; }
+
+    if (en.type === 'katzenjammer') {
+      en.y = en.baseY + Math.sin(globalTime * en.bobFreq + en.animPhase) * en.bobAmp;
+    }
+
+    // Check collision with Leap Hamilton
+    if (rectsOverlap(player.x + 2, player.y + 2, player.w - 4, player.h - 2, en.x + 2, en.y + 2, en.w - 4, en.h - 4)) {
+      // Forgiving stomp check: falling downward and feet above enemy's lower half
+      const stomping = player.vy > 0 && (player.y + player.h - player.vy * dt) <= en.y + en.h * 0.65;
+      if (stomping) {
+        en.stunTimer = 5.0;
+        player.vy = -370; // Bounce off monster!
+        player.grounded = false;
+        score += 100;
+        playSfx('stomp');
+        spawnParticles(en.x + en.w / 2, en.y, '#00f5d4', 14);
+      } else {
+        hurtPlayer();
+      }
+    }
+  }
+
+  // Check Door Exit when all Ideas collected
+  const allCollected = ideas.every(it => it.collected);
+  if (allCollected && rectsOverlap(player.x, player.y, player.w, player.h, levelDoor.x, levelDoor.y, levelDoor.w, levelDoor.h)) {
+    playSfx('door');
+    score += 500;
+    spawnParticles(levelDoor.x + 18, levelDoor.y + 24, '#00f5d4', 25);
+    if (currentLevelIdx + 1 < LEVELS.length) {
+      currentLevelIdx++;
+      loadLevel(currentLevelIdx);
+    } else {
+      gameState = 'victory';
+    }
+  }
+}
+
+function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+// ============================================================================
+// RENDERING (RETRO ZX SPECTRUM / ARCADE PIXEL AESTHETIC)
+// ============================================================================
+function draw() {
+  ctx.save();
+  if (screenShake > 0) {
+    const mag = screenShake * 18;
+    ctx.translate((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag);
+  }
+
+  const def = LEVELS[currentLevelIdx] || LEVELS[0];
+
+  // Background gradient + starfield
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, def.bgTop);
+  grad.addColorStop(1, def.bgBot);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle retro starfield
+  for (let i = 0; i < 42; i++) {
+    const sx = (i * 197 + currentLevelIdx * 73) % W;
+    const sy = (i * 113 + currentLevelIdx * 41) % (H - 60);
+    const twinkle = Math.sin(globalTime * 3 + i) > 0.2 ? 2 : 1;
+    ctx.fillStyle = i % 3 === 0 ? '#ffe600' : '#ffffff';
+    ctx.globalAlpha = 0.35;
+    ctx.fillRect(sx, sy, twinkle, twinkle);
+  }
+  ctx.globalAlpha = 1;
+
+  if (gameState === 'title') {
+    drawTitleScreen();
+    ctx.restore();
+    return;
+  }
+
+  // Draw Exit Door
+  const allCollected = ideas.every(it => it.collected);
+  drawDoor(levelDoor, allCollected, def.accent);
+
+  // Draw Platforms
+  for (const p of platforms) {
+    drawPlatform(p, def);
+  }
+
+  // Draw Ideas (Glowing Lightbulbs)
+  for (const it of ideas) {
+    if (!it.collected) drawIdeaBulb(it);
+  }
+
+  // Draw Enemies
+  for (const en of enemies) {
+    drawEnemy(en);
+  }
+
+  // Draw Leap Hamilton
+  drawLeapHamilton();
+
+  // Draw Particles
+  for (const pt of particles) {
+    ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+    ctx.fillStyle = pt.color;
+    ctx.fillRect(pt.x - pt.size / 2, pt.y - pt.size / 2, pt.size, pt.size);
+  }
+  ctx.globalAlpha = 1;
+
+  // Top HUD Bar
+  drawHUD(def);
+
+  if (gameState === 'gameover') drawOverlay("PITCH REJECTED!", "The Unity has claimed the galaxy. Press SPACE or Click to try again.", "#ff4d6d");
+  if (gameState === 'victory') drawOverlay("YOU SOLD THE STARS!", "Leap Hamilton saved humanity & outwitted the Unity! Final Score: " + score, "#ffe600");
+
+  ctx.restore();
+}
+
+function drawHUD(def) {
+  ctx.fillStyle = 'rgba(8, 8, 18, 0.85)';
+  ctx.fillRect(0, 0, W, 36);
+  ctx.fillStyle = def.accent;
+  ctx.fillRect(0, 34, W, 2);
+
+  ctx.font = 'bold 14px "Courier New", monospace';
+  ctx.fillStyle = '#ffe600';
+  ctx.fillText(def.name, 14, 22);
+
+  const rem = ideas.filter(i => !i.collected).length;
+  ctx.fillStyle = rem === 0 ? '#00f5d4' : '#ffffff';
+  ctx.fillText(rem === 0 ? 'DOOR OPEN!' : `IDEAS LEFT: ${rem}`, 435, 22);
+
+  ctx.fillStyle = '#00f5d4';
+  ctx.fillText(`SCORE: ${String(score).padStart(5, '0')}`, 575, 22);
+
+  ctx.fillStyle = '#ff4d6d';
+  ctx.fillText(`LIVES: ${'♥'.repeat(Math.max(0, lives))}`, 705, 22);
+}
+
+function drawPlatform(p, def) {
+  if (p.crumbleState === 'gone') {
+    // Faint dashed outline showing where platform will regenerate
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2);
+    ctx.setLineDash([]);
+    return;
+  }
+
+  let shakeX = 0;
+  if (p.crumbleState === 'shaking') {
+    shakeX = (Math.random() - 0.5) * 5;
+  }
+
+  ctx.save();
+  ctx.translate(shakeX, 0);
+
+  if (p.type === 'solid') {
+    ctx.fillStyle = def.solidColor;
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = def.solidTop;
+    ctx.fillRect(p.x, p.y, p.w, 4);
+    // Retro brick ticks
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    for (let bx = p.x + 16; bx < p.x + p.w; bx += 20) {
+      ctx.fillRect(bx, p.y + 4, 2, p.h - 4);
+    }
+  } else if (p.type === 'crumble') {
+    ctx.fillStyle = p.crumbleState === 'shaking' ? '#ff9f1c' : '#d4a373';
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = '#fefae0';
+    ctx.fillRect(p.x, p.y, p.w, 3);
+    // Crack lines
+    ctx.strokeStyle = '#3d2516';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let cx = p.x + 14; cx < p.x + p.w - 10; cx += 24) {
+      ctx.moveTo(cx, p.y + 2);
+      ctx.lineTo(cx + 6, p.y + 9);
+      ctx.lineTo(cx - 2, p.y + 15);
+    }
+    ctx.stroke();
+  } else if (p.type === 'conveyorL' || p.type === 'conveyorR') {
+    ctx.fillStyle = '#2b2d42';
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.strokeStyle = '#00f5d4';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2);
+    // Animated chevrons
+    const dir = p.type === 'conveyorR' ? 1 : -1;
+    const offset = ((globalTime * 45 * dir) % 16 + 16) % 16;
+    ctx.fillStyle = '#ffe600';
+    for (let cx = p.x + offset; cx < p.x + p.w - 6; cx += 16) {
+      ctx.fillRect(cx, p.y + 5, 5, 6);
+    }
+  }
+  ctx.restore();
+}
+
+function drawDoor(door, isOpen, accent) {
+  ctx.fillStyle = '#1b1b2f';
+  ctx.fillRect(door.x - 3, door.y - 3, door.w + 6, door.h + 3);
+
+  if (isOpen) {
+    // Swirling time-portal / summit exit
+    const pulse = Math.sin(globalTime * 8) * 20;
+    ctx.fillStyle = `rgb(0, ${210 + pulse}, 212)`;
+    ctx.fillRect(door.x, door.y, door.w, door.h);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(door.x + 8, door.y + 8, door.w - 16, door.h - 12);
+  } else {
+    ctx.fillStyle = '#4a4e69';
+    ctx.fillRect(door.x, door.y, door.w, door.h);
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(door.x + 2, door.y + 2, door.w - 4, door.h - 4);
+    // Lock icon
+    ctx.fillStyle = '#ff4d6d';
+    ctx.fillRect(door.x + 13, door.y + 20, 10, 10);
+  }
+}
+
+function drawIdeaBulb(it) {
+  const bob = Math.sin(globalTime * 4.5 + it.phase) * 4;
+  const x = it.x;
+  const y = it.y + bob;
+
+  // Glow halo
+  ctx.fillStyle = 'rgba(255, 230, 0, 0.22)';
+  ctx.beginPath();
+  ctx.arc(x, y - 2, 13, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Glass bulb
+  ctx.fillStyle = '#ffe600';
+  ctx.beginPath();
+  ctx.arc(x, y - 3, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillRect(x - 4, y + 1, 8, 5);
+
+  // Bright highlight
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x - 3, y - 6, 3, 3);
+
+  // Screw base
+  ctx.fillStyle = '#8d99ae';
+  ctx.fillRect(x - 3, y + 6, 6, 4);
+}
+
+function drawLeapHamilton() {
+  if (player.invulnTimer > 0 && Math.floor(globalTime * 16) % 2 === 0) return;
+
+  const x = Math.round(player.x);
+  const y = Math.round(player.y);
+  const f = player.facing;
+
+  // 1950s Madison Avenue Suit (Charcoal/Navy) + Fedora!
+  // Legs
+  const stride = Math.sin(player.walkFrame) * 4;
+  ctx.fillStyle = '#2b2d42';
+  ctx.fillRect(x + 4, y + 21, 5, 11 + (player.grounded ? stride * 0.4 : -2));
+  ctx.fillRect(x + 13, y + 21, 5, 11 - (player.grounded ? stride * 0.4 : 2));
+
+  // Torso (Suit jacket + white shirt + red tie)
+  ctx.fillStyle = '#3a506b';
+  ctx.fillRect(x + 3, y + 11, 16, 11);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x + 9, y + 11, 4, 8);
+  ctx.fillStyle = '#e63946';
+  ctx.fillRect(x + 10, y + 12, 2, 7);
+
+  // Head
+  ctx.fillStyle = '#ffcdb2';
+  ctx.fillRect(x + 5, y + 3, 12, 8);
+  // Eye
+  ctx.fillStyle = '#000';
+  ctx.fillRect(f === 1 ? x + 13 : x + 7, y + 5, 2, 2);
+
+  // 1950s Fedora Hat
+  ctx.fillStyle = '#5c4d7d';
+  ctx.fillRect(x + 1, y + 2, 20, 2); // brim
+  ctx.fillRect(x + 5, y - 2, 12, 4); // crown
+  ctx.fillStyle = '#ffe600';
+  ctx.fillRect(x + 5, y + 1, 12, 1); // hatband
+}
+
+function drawEnemy(en) {
+  const x = Math.round(en.x);
+  const y = Math.round(en.y);
+  const stunned = en.stunTimer > 0;
+
+  ctx.save();
+  if (stunned) {
+    ctx.globalAlpha = 0.72;
+  }
+
+  if (en.type === 'katzenjammer') {
+    // Giant Alien Bat (Katzenjammer!)
+    const wingFlap = stunned ? 6 : Math.sin(globalTime * 16 + en.animPhase) * 10;
+    ctx.fillStyle = stunned ? '#6c757d' : '#9b5de5';
+
+    // Left & Right Leathery Wings
+    ctx.beginPath();
+    ctx.moveTo(x + 14, y + 14);
+    ctx.lineTo(x - 6, y + 4 + wingFlap);
+    ctx.lineTo(x + 4, y + 22);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(x + 30, y + 14);
+    ctx.lineTo(x + 50, y + 4 + wingFlap);
+    ctx.lineTo(x + 40, y + 22);
+    ctx.fill();
+
+    // Alien Bat Body & Pointed Ears
+    ctx.fillStyle = stunned ? '#495057' : '#5a189a';
+    ctx.fillRect(x + 12, y + 6, 20, 18);
+    // Ears
+    ctx.fillRect(x + 13, y, 4, 6);
+    ctx.fillRect(x + 27, y, 4, 6);
+
+    // Glowing Alien Eyes & Fangs
+    ctx.fillStyle = stunned ? '#00f5d4' : '#ffe600';
+    ctx.fillRect(x + 15, y + 10, 4, 4);
+    ctx.fillRect(x + 25, y + 10, 4, 4);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 17, y + 19, 2, 4);
+    ctx.fillRect(x + 25, y + 19, 2, 4);
+
+  } else if (en.type === 'typewriter') {
+    // Clacking 1950s Typewriter
+    ctx.fillStyle = '#495057';
+    ctx.fillRect(x + 2, y + 12, 22, 16);
+    ctx.fillStyle = '#adb5bd';
+    ctx.fillRect(x + 4, y + 6, 18, 6); // carriage
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 7, y, 12, 7); // paper sheet
+    ctx.fillStyle = '#ff4d6d';
+    ctx.fillRect(x + 6, y + 16, 14, 6); // keys
+    // Feet
+    const step = Math.sin(en.animPhase) * 2;
+    ctx.fillStyle = '#ffe600';
+    ctx.fillRect(x + 4, y + 28 + step, 5, 4);
+    ctx.fillRect(x + 17, y + 28 - step, 5, 4);
+
+  } else if (en.type === 'adman') {
+    // Rival Madison Ave Copywriter
+    ctx.fillStyle = '#6d6875';
+    ctx.fillRect(x + 4, y + 10, 18, 16);
+    ctx.fillStyle = '#ffcdb2';
+    ctx.fillRect(x + 6, y + 2, 14, 8);
+    ctx.fillStyle = '#1d3557';
+    ctx.fillRect(x + 3, y, 20, 3); // hat
+    ctx.fillStyle = '#e63946';
+    ctx.fillRect(x + 8, y + 4, 3, 2);
+    ctx.fillRect(x + 15, y + 4, 3, 2);
+    const step = Math.sin(en.animPhase) * 2;
+    ctx.fillStyle = '#222';
+    ctx.fillRect(x + 5, y + 26 + step, 5, 6);
+    ctx.fillRect(x + 16, y + 26 - step, 5, 6);
+
+  } else if (en.type === 'coffee') {
+    // Giant Steaming Coffee Mug
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(x + 4, y + 8, 16, 20);
+    ctx.strokeStyle = '#f8f9fa';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 20, y + 12, 4, 10);
+    ctx.fillStyle = '#6f4e37';
+    ctx.fillRect(x + 6, y + 9, 12, 4);
+    // Steam
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    const wisp = Math.sin(globalTime * 8) * 2;
+    ctx.fillRect(x + 8 + wisp, y + 1, 2, 5);
+    ctx.fillRect(x + 14 - wisp, y + 2, 2, 5);
+
+  } else if (en.type === 'drone') {
+    // 2120 Isaac Hover Drone
+    const hover = Math.sin(en.animPhase) * 2;
+    ctx.fillStyle = '#00b4d8';
+    ctx.beginPath();
+    ctx.arc(x + 13, y + 14 + hover, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ff006e';
+    ctx.fillRect(x + 7, y + 11 + hover, 12, 5); // visor
+    ctx.fillStyle = '#ffe600';
+    ctx.fillRect(x + 11, y + 26 + hover, 4, 5); // thruster
+
+  } else if (en.type === 'pamper') {
+    // Pampered 2120 Hover-Chair Citizen
+    ctx.fillStyle = '#ffbe0b';
+    ctx.fillRect(x + 2, y + 16, 22, 12); // hover pod
+    ctx.fillStyle = '#ff758f';
+    ctx.fillRect(x + 6, y + 6, 14, 10); // plump tunic
+    ctx.fillStyle = '#ffcdb2';
+    ctx.fillRect(x + 8, y, 10, 6);
+
+  } else if (en.type === 'emgbomb') {
+    // Ticking EMG Doomsday Bomb
+    ctx.fillStyle = '#212529';
+    ctx.beginPath();
+    ctx.arc(x + 13, y + 18, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ff4d6d';
+    ctx.fillRect(x + 8, y + 15, 10, 5);
+    // Fuse spark
+    ctx.fillStyle = Math.floor(globalTime * 20) % 2 === 0 ? '#ffe600' : '#ff4d6d';
+    ctx.fillRect(x + 11, y + 1, 5, 5);
+  }
+
+  // Stunned spinning stars indicator above head
+  if (stunned) {
+    for (let s = 0; s < 3; s++) {
+      const ang = globalTime * 6 + s * (Math.PI * 2 / 3);
+      const sx = x + en.w / 2 + Math.cos(ang) * 12;
+      const sy = y - 6 + Math.sin(ang) * 3;
+      ctx.fillStyle = '#00f5d4';
+      ctx.fillRect(sx - 2, sy - 2, 4, 4);
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawTitleScreen() {
+  ctx.textAlign = 'center';
+
+  ctx.fillStyle = '#00f5d4';
+  ctx.font = 'bold 16px "Courier New", monospace';
+  ctx.fillText('A RETRO PLATFORMER INSPIRED BY THE NOVEL', W / 2, 85);
+
+  ctx.fillStyle = '#ffe600';
+  ctx.font = 'bold 42px "Courier New", monospace';
+  ctx.fillText('HOW TO SELL THE STARS', W / 2, 138);
+
+  // Decorative box
+  ctx.strokeStyle = '#ff4d6d';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(110, 170, W - 220, 235);
+  ctx.fillStyle = 'rgba(15, 15, 32, 0.85)';
+  ctx.fillRect(110, 170, W - 220, 235);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px "Courier New", monospace';
+  ctx.fillText('1950s ad-man Leap Hamilton has been yanked to 2120!', W / 2, 205);
+  ctx.fillText('Collect all Bright Ideas in each era to open the portal.', W / 2, 230);
+
+  ctx.fillStyle = '#00f5d4';
+  ctx.fillText('• STAGE 1: 1950s Knuckleville Ad Agency', W / 2, 270);
+  ctx.fillText("• STAGE 2: Isaac's 2120 Automated Utopia", W / 2, 295);
+  ctx.fillText('• STAGE 3: The Unity Summit & Alien Katzenjammers', W / 2, 320);
+
+  ctx.fillStyle = '#ffd166';
+  ctx.fillText('TIP: Jump on top of monsters to STUN them!', W / 2, 360);
+  ctx.fillText('Watch out for crumbling floors & conveyor belts!', W / 2, 383);
+
+  if (Math.floor(globalTime * 2.5) % 2 === 0) {
+    ctx.fillStyle = '#ffe600';
+    ctx.font = 'bold 20px "Courier New", monospace';
+    ctx.fillText('PRESS [SPACE] OR CLICK TO START', W / 2, 465);
+  }
+
+  ctx.textAlign = 'left';
+}
+
+function drawOverlay(heading, subtext, color) {
+  ctx.fillStyle = 'rgba(5, 5, 15, 0.82)';
+  ctx.fillRect(90, 175, W - 180, 190);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(90, 175, W - 180, 190);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = color;
+  ctx.font = 'bold 34px "Courier New", monospace';
+  ctx.fillText(heading, W / 2, 235);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px "Courier New", monospace';
+  ctx.fillText(subtext, W / 2, 280);
+
+  ctx.fillStyle = '#00f5d4';
+  ctx.font = 'bold 16px "Courier New", monospace';
+  ctx.fillText('PRESS [SPACE] OR CLICK TO PLAY AGAIN', W / 2, 330);
+  ctx.textAlign = 'left';
+}
+
+// ============================================================================
+// MAIN LOOP
+// ============================================================================
+let lastTime = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
