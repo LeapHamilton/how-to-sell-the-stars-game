@@ -2,100 +2,177 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HOW TO SELL THE STARS - A Manic Platformer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>HOW TO SELL THE STARS - Mobile & Desktop Edition</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-  body {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  html, body {
+    width: 100%;
+    height: 100%;
     background-color: #08080f;
     color: #f0f0f0;
     font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
+    touch-action: none;
+  }
+  body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    overflow: hidden;
+    justify-content: space-between;
+    padding: env(safe-area-inset-top, 6px) env(safe-area-inset-right, 6px) env(safe-area-inset-bottom, 8px) env(safe-area-inset-left, 6px);
   }
   #wrapper {
     background: #11111e;
-    border: 4px solid #3c3c64;
+    border: 3px solid #3c3c64;
     border-radius: 6px;
-    padding: 12px;
-    box-shadow: 0 0 35px rgba(0, 210, 255, 0.18);
-    max-width: 840px;
+    padding: 8px;
+    box-shadow: 0 0 28px rgba(0, 210, 255, 0.18);
     width: 100%;
+    max-width: 840px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1 1 auto;
+    min-height: 0;
   }
   #topbar {
+    width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    flex-wrap: wrap;
-    gap: 8px;
+    margin-bottom: 6px;
+    gap: 6px;
+    flex-shrink: 0;
   }
   .title-badge {
     font-weight: bold;
     color: #ffe600;
-    font-size: 15px;
-    letter-spacing: 1px;
+    font-size: clamp(12px, 3.2vw, 15px);
+    letter-spacing: 0.5px;
     text-shadow: 2px 2px #000;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .controls-bar {
     display: flex;
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 0;
   }
-  button {
+  button.ui-btn {
     background: #22223b;
     color: #00f5d4;
     border: 2px solid #00f5d4;
-    padding: 5px 11px;
+    padding: 4px 8px;
     font-family: inherit;
-    font-size: 13px;
+    font-size: clamp(11px, 2.8vw, 13px);
     font-weight: bold;
     cursor: pointer;
-    border-radius: 3px;
-    transition: all 0.15s;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
   }
-  button:hover {
+  button.ui-btn:active, button.ui-btn:hover {
     background: #00f5d4;
     color: #0a0a14;
   }
-  button.secondary {
+  button.ui-btn.secondary {
     color: #ffd166;
     border-color: #ffd166;
   }
-  button.secondary:hover {
+  button.ui-btn.secondary:active, button.ui-btn.secondary:hover {
     background: #ffd166;
     color: #0a0a14;
   }
   #gameContainer {
     position: relative;
-    width: 800px;
-    height: 540px;
-    margin: 0 auto;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: #000;
-    border: 3px solid #222;
+    border: 2px solid #222;
+    overflow: hidden;
   }
   canvas {
     display: block;
-    width: 800px;
-    height: 540px;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 800 / 540;
+    object-fit: contain;
     image-rendering: pixelated;
   }
-  #footer-help {
-    margin-top: 8px;
+  #touchControls {
+    width: 100%;
+    max-width: 840px;
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    color: #a0a0c0;
+    align-items: center;
+    padding: 8px 6px 2px 6px;
+    gap: 12px;
+    flex-shrink: 0;
   }
-  kbd {
-    background: #252540;
-    border: 1px solid #555580;
-    padding: 1px 5px;
-    border-radius: 3px;
-    color: #fff;
+  .dpad-group {
+    display: flex;
+    gap: 12px;
+  }
+  .touch-btn {
+    background: rgba(34, 34, 59, 0.92);
+    border: 3px solid #00f5d4;
+    color: #00f5d4;
+    border-radius: 14px;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 26px;
+    width: clamp(64px, 18vw, 84px);
+    height: clamp(56px, 14vw, 72px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 0 #0a2a2e;
+    cursor: pointer;
+    touch-action: none;
+  }
+  .touch-btn.active {
+    background: #00f5d4;
+    color: #08080f;
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #0a2a2e;
+  }
+  .touch-btn.jump-btn {
+    border-color: #ffe600;
+    color: #ffe600;
+    box-shadow: 0 4px 0 #4a4200;
+    width: clamp(96px, 28vw, 136px);
+    font-size: clamp(16px, 4.2vw, 20px);
+    letter-spacing: 1px;
+  }
+  .touch-btn.jump-btn.active {
+    background: #ffe600;
+    color: #08080f;
+    box-shadow: 0 1px 0 #4a4200;
+  }
+  #footer-help {
+    margin-top: 4px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #a0a0c0;
+    flex-shrink: 0;
+  }
+  @media (max-width: 680px) {
+    #footer-help { display: none; }
+    #wrapper { padding: 6px; }
   }
 </style>
 </head>
@@ -104,17 +181,27 @@
   <div id="topbar">
     <div class="title-badge">★ HOW TO SELL THE STARS ★</div>
     <div class="controls-bar">
-      <button id="musicBtn" onclick="toggleMusic()">🎵 MUSIC: ON (M)</button>
-      <button class="secondary" onclick="downloadSelf()">⬇ SAVE GAME (.HTML)</button>
+      <button class="ui-btn" id="musicBtn" onclick="toggleMusic()">🎵 ON</button>
+      <button class="ui-btn secondary" onclick="if(gameState==='playing') loadLevel(currentLevelIdx)">↻ RESET</button>
+      <button class="ui-btn secondary" onclick="downloadSelf()">⬇ SAVE</button>
     </div>
   </div>
   <div id="gameContainer">
     <canvas id="game" width="800" height="540"></canvas>
   </div>
   <div id="footer-help">
-    <div>Move: <kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> &nbsp;|&nbsp; Jump: <kbd>Space</kbd> / <kbd>↑</kbd> / <kbd>W</kbd></div>
-    <div>Stomp monsters to stun! &nbsp;|&nbsp; Mute: <kbd>M</kbd> &nbsp;|&nbsp; Restart: <kbd>R</kbd></div>
+    <div>Desktop: Arrows/WASD + Space &nbsp;|&nbsp; Mobile: On-screen touch buttons below</div>
+    <div>Stomp monsters to stun! &nbsp;|&nbsp; Mute: M &nbsp;|&nbsp; Restart: R</div>
   </div>
+</div>
+
+<!-- ON-SCREEN MOBILE TOUCH CONTROLS -->
+<div id="touchControls">
+  <div class="dpad-group">
+    <div class="touch-btn" id="btnLeft" aria-label="Move Left">◀</div>
+    <div class="touch-btn" id="btnRight" aria-label="Move Right">▶</div>
+  </div>
+  <div class="touch-btn jump-btn" id="btnJump" aria-label="Jump">JUMP ▲</div>
 </div>
 
 <script>
@@ -281,7 +368,7 @@ function toggleMusic() {
   initAudio();
   musicEnabled = !musicEnabled;
   const btn = document.getElementById('musicBtn');
-  btn.textContent = musicEnabled ? '🎵 MUSIC: ON (M)' : '🔇 MUSIC: OFF (M)';
+  btn.textContent = musicEnabled ? '🎵 ON' : '🔇 OFF';
 }
 
 function downloadSelf() {
@@ -289,13 +376,13 @@ function downloadSelf() {
   const blob = new Blob([htmlContent], { type: 'text/html' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'how_to_sell_the_stars.html';
+  a.download = 'how_to_sell_the_stars_mobile.html';
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
 // ============================================================================
-// GAME ENGINE & LEVEL DATA (VERIFIED REACHABLE JUMPS & SMOOTH PROGRESSION)
+// INPUT HANDLING (MULTI-TOUCH MOBILE BUTTONS + DESKTOP KEYBOARD)
 // ============================================================================
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -303,7 +390,15 @@ const W = 800;
 const H = 540;
 
 const keys = {};
+const touchState = { left: false, right: false, jump: false };
 let jumpBufferTimer = 0;
+
+function triggerJumpPress() {
+  initAudio();
+  jumpBufferTimer = 0.16;
+  if (gameState === 'title') startGame();
+  else if ((gameState === 'gameover' || gameState === 'victory') && victoryCooldown <= 0) startGame();
+}
 
 window.addEventListener('keydown', (e) => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
@@ -312,9 +407,7 @@ window.addEventListener('keydown', (e) => {
   initAudio();
   if (!keys[e.code]) {
     if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-      jumpBufferTimer = 0.16;
-      if (gameState === 'title') startGame();
-      else if ((gameState === 'gameover' || gameState === 'victory') && victoryCooldown <= 0) startGame();
+      triggerJumpPress();
     }
     if (e.code === 'KeyM') toggleMusic();
     if (e.code === 'KeyR' && gameState === 'playing') loadLevel(currentLevelIdx);
@@ -326,20 +419,60 @@ window.addEventListener('keyup', (e) => {
   keys[e.code] = false;
 });
 
-canvas.addEventListener('click', () => {
+// Multi-touch pointer bindings for mobile controls (supports sliding thumb between Left/Right while jumping!)
+function bindTouchButton(elementId, stateKey, isJump = false) {
+  const el = document.getElementById(elementId);
+
+  const setPressed = (pressed) => {
+    if (pressed && !touchState[stateKey] && isJump) {
+      triggerJumpPress();
+    } else if (pressed) {
+      initAudio();
+    }
+    touchState[stateKey] = pressed;
+    if (pressed) el.classList.add('active');
+    else el.classList.remove('active');
+  };
+
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    setPressed(true);
+  });
+
+  el.addEventListener('pointerup', (e) => {
+    e.preventDefault();
+    setPressed(false);
+  });
+
+  el.addEventListener('pointercancel', (e) => {
+    e.preventDefault();
+    setPressed(false);
+  });
+}
+
+bindTouchButton('btnLeft', 'left', false);
+bindTouchButton('btnRight', 'right', false);
+bindTouchButton('btnJump', 'jump', true);
+
+// Tapping directly on the game canvas starts/restarts on Title/GameOver/Victory screens
+canvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
   initAudio();
   if (gameState === 'title' || ((gameState === 'gameover' || gameState === 'victory') && victoryCooldown <= 0)) {
     startGame();
   }
 });
 
-// Max jump height is ~112px (vy = -490, g = 1080), all vertical steps <= 82px!
+// ============================================================================
+// LEVEL DATA (ALL 3 STAGES + KATZENJAMMERS + "DANCING QUEEN" CODEWORD)
+// ============================================================================
 const LEVELS = [
   // ==========================================================================
   // LEVEL 1: 1950s KNUCKLEVILLE AD AGENCY
   // ==========================================================================
   {
-    name: "STAGE 1: 1950s KNUCKLEVILLE AD AGENCY",
+    name: "STAGE 1: 1950s KNUCKLEVILLE",
     subtitle: "Pitch the stars before 5 PM! Collect all 6 Bright Ideas.",
     bgTop: "#141829",
     bgBot: "#262b44",
@@ -349,22 +482,17 @@ const LEVELS = [
     spawn: { x: 48, y: 452 },
     door: { x: 726, y: 74, w: 36, h: 48 },
     platforms: [
-      // Ground floor
       { x: 0, y: 500, w: 800, h: 40, type: 'solid' },
-      // Tier 1 (max step up = 75px)
       { x: 130, y: 428, w: 150, h: 16, type: 'solid' },
       { x: 335, y: 425, w: 130, h: 16, type: 'crumble' },
       { x: 520, y: 418, w: 195, h: 16, type: 'conveyorL' },
-      // Tier 2 (max step up = 78px)
       { x: 635, y: 342, w: 135, h: 16, type: 'solid' },
       { x: 425, y: 335, w: 155, h: 16, type: 'solid' },
       { x: 225, y: 335, w: 140, h: 16, type: 'crumble' },
       { x: 30,  y: 325, w: 145, h: 16, type: 'solid' },
-      // Tier 3 (max step up = 80px)
       { x: 145, y: 245, w: 175, h: 16, type: 'conveyorR' },
       { x: 380, y: 235, w: 125, h: 16, type: 'crumble' },
       { x: 560, y: 228, w: 185, h: 16, type: 'solid' },
-      // Tier 4 - Top Agency Suite (max step up = 80px, generous gaps)
       { x: 565, y: 122, w: 210, h: 16, type: 'solid' },
       { x: 355, y: 148, w: 150, h: 16, type: 'crumble' },
       { x: 120, y: 142, w: 170, h: 16, type: 'solid' }
@@ -399,21 +527,16 @@ const LEVELS = [
     spawn: { x: 42, y: 452 },
     door: { x: 42, y: 74, w: 36, h: 48 },
     platforms: [
-      // Ground
       { x: 0, y: 500, w: 800, h: 40, type: 'solid' },
-      // Tier 1
       { x: 175, y: 428, w: 130, h: 16, type: 'crumble' },
       { x: 355, y: 418, w: 165, h: 16, type: 'conveyorR' },
       { x: 575, y: 408, w: 185, h: 16, type: 'solid' },
-      // Tier 2
       { x: 420, y: 332, w: 125, h: 16, type: 'crumble' },
       { x: 200, y: 325, w: 165, h: 16, type: 'conveyorL' },
       { x: 30,  y: 312, w: 125, h: 16, type: 'solid' },
-      // Tier 3
       { x: 175, y: 235, w: 125, h: 16, type: 'crumble' },
       { x: 350, y: 225, w: 175, h: 16, type: 'solid' },
       { x: 580, y: 220, w: 165, h: 16, type: 'conveyorL' },
-      // Tier 4
       { x: 415, y: 145, w: 130, h: 16, type: 'crumble' },
       { x: 225, y: 138, w: 130, h: 16, type: 'crumble' },
       { x: 25,  y: 122, w: 150, h: 16, type: 'solid' }
@@ -440,7 +563,7 @@ const LEVELS = [
   // LEVEL 3: THE UNITY GALACTIC TRADE SUMMIT (FEATURING THE KATZENJAMMERS!)
   // ==========================================================================
   {
-    name: "STAGE 3: UNITY SUMMIT & THE KATZENJAMMERS",
+    name: "STAGE 3: UNITY & KATZENJAMMERS",
     subtitle: "Outsmart the giant alien Katzenjammer bats! Collect all 8 Ideas.",
     bgTop: "#1a0926",
     bgBot: "#32124a",
@@ -450,22 +573,17 @@ const LEVELS = [
     spawn: { x: 44, y: 452 },
     door: { x: 732, y: 74, w: 36, h: 48 },
     platforms: [
-      // Ground
       { x: 0, y: 500, w: 800, h: 40, type: 'solid' },
-      // Tier 1
       { x: 155, y: 428, w: 120, h: 16, type: 'crumble' },
       { x: 330, y: 420, w: 145, h: 16, type: 'conveyorL' },
       { x: 535, y: 412, w: 120, h: 16, type: 'crumble' },
       { x: 690, y: 395, w: 95,  h: 16, type: 'solid' },
-      // Tier 2
       { x: 490, y: 322, w: 145, h: 16, type: 'solid' },
       { x: 280, y: 320, w: 130, h: 16, type: 'crumble' },
       { x: 60,  y: 312, w: 155, h: 16, type: 'conveyorR' },
-      // Tier 3
       { x: 180, y: 228, w: 120, h: 16, type: 'crumble' },
       { x: 360, y: 220, w: 155, h: 16, type: 'solid' },
       { x: 575, y: 215, w: 120, h: 16, type: 'crumble' },
-      // Top Summit
       { x: 415, y: 140, w: 130, h: 16, type: 'conveyorR' },
       { x: 210, y: 138, w: 130, h: 16, type: 'crumble' },
       { x: 610, y: 122, w: 170, h: 16, type: 'solid' }
@@ -602,7 +720,7 @@ function hurtPlayer() {
 }
 
 // ============================================================================
-// UPDATE LOOP (FORGIVING PLATFORMER PHYSICS)
+// UPDATE LOOP
 // ============================================================================
 function update(dt) {
   globalTime += dt;
@@ -641,8 +759,8 @@ function update(dt) {
     }
   }
 
-  const left = keys['ArrowLeft'] || keys['KeyA'];
-  const right = keys['ArrowRight'] || keys['KeyD'];
+  const left = keys['ArrowLeft'] || keys['KeyA'] || touchState.left;
+  const right = keys['ArrowRight'] || keys['KeyD'] || touchState.right;
   const maxSpeed = 225;
   const accel = player.grounded ? 1900 : 1300;
   const friction = player.grounded ? 1600 : 500;
@@ -670,7 +788,6 @@ function update(dt) {
     player.coyoteTimer -= dt;
   }
 
-  // Generous jump impulse (vy = -490 -> ~111px jump arc)
   if (jumpBufferTimer > 0 && player.coyoteTimer > 0) {
     player.vy = -490;
     player.grounded = false;
@@ -679,7 +796,7 @@ function update(dt) {
     playSfx('jump');
   }
 
-  const jumpHeld = keys['Space'] || keys['ArrowUp'] || keys['KeyW'];
+  const jumpHeld = keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || touchState.jump;
   if (!jumpHeld && player.vy < -210) {
     player.vy += 1350 * dt;
   }
@@ -850,7 +967,7 @@ function draw() {
 
   drawHUD(def);
 
-  if (gameState === 'gameover') drawOverlay("PITCH REJECTED!", "The Unity has claimed the galaxy. Press SPACE or Click to try again.", "#ff4d6d");
+  if (gameState === 'gameover') drawOverlay("PITCH REJECTED!", "The Unity has claimed the galaxy. Tap or press JUMP to retry.", "#ff4d6d");
   if (gameState === 'victory') drawVictoryOverlay();
 
   ctx.restore();
@@ -858,23 +975,23 @@ function draw() {
 
 function drawHUD(def) {
   ctx.fillStyle = 'rgba(8, 8, 18, 0.85)';
-  ctx.fillRect(0, 0, W, 36);
+  ctx.fillRect(0, 0, W, 38);
   ctx.fillStyle = def.accent;
-  ctx.fillRect(0, 34, W, 2);
+  ctx.fillRect(0, 36, W, 2);
 
-  ctx.font = 'bold 14px "Courier New", monospace';
+  ctx.font = 'bold 15px "Courier New", monospace';
   ctx.fillStyle = '#ffe600';
-  ctx.fillText(def.name, 14, 22);
+  ctx.fillText(def.name, 14, 24);
 
   const rem = ideas.filter(i => !i.collected).length;
   ctx.fillStyle = rem === 0 ? '#00f5d4' : '#ffffff';
-  ctx.fillText(rem === 0 ? 'DOOR OPEN!' : `IDEAS LEFT: ${rem}`, 435, 22);
+  ctx.fillText(rem === 0 ? 'DOOR OPEN!' : `IDEAS: ${rem}`, 375, 24);
 
   ctx.fillStyle = '#00f5d4';
-  ctx.fillText(`SCORE: ${String(score).padStart(5, '0')}`, 575, 22);
+  ctx.fillText(`SCORE: ${String(score).padStart(5, '0')}`, 525, 24);
 
   ctx.fillStyle = '#ff4d6d';
-  ctx.fillText(`LIVES: ${'♥'.repeat(Math.max(0, lives))}`, 705, 22);
+  ctx.fillText(`LIVES: ${'♥'.repeat(Math.max(0, lives))}`, 685, 24);
 }
 
 function drawPlatform(p, def) {
@@ -1144,9 +1261,9 @@ function drawTitleScreen() {
 
   ctx.strokeStyle = '#ff4d6d';
   ctx.lineWidth = 3;
-  ctx.strokeRect(110, 170, W - 220, 235);
+  ctx.strokeRect(100, 170, W - 200, 235);
   ctx.fillStyle = 'rgba(15, 15, 32, 0.85)';
-  ctx.fillRect(110, 170, W - 220, 235);
+  ctx.fillRect(100, 170, W - 200, 235);
 
   ctx.fillStyle = '#ffffff';
   ctx.font = '15px "Courier New", monospace';
@@ -1160,23 +1277,23 @@ function drawTitleScreen() {
 
   ctx.fillStyle = '#ffd166';
   ctx.fillText('TIP: Jump on top of monsters to STUN them!', W / 2, 360);
-  ctx.fillText('Watch out for crumbling floors & conveyor belts!', W / 2, 383);
+  ctx.fillText('Beat Stage 3 to unlock your secret book codeword!', W / 2, 383);
 
   if (Math.floor(globalTime * 2.5) % 2 === 0) {
     ctx.fillStyle = '#ffe600';
-    ctx.font = 'bold 20px "Courier New", monospace';
-    ctx.fillText('PRESS [SPACE] OR CLICK TO START', W / 2, 465);
+    ctx.font = 'bold 21px "Courier New", monospace';
+    ctx.fillText('TAP SCREEN OR PRESS [JUMP] TO START', W / 2, 465);
   }
 
   ctx.textAlign = 'left';
 }
 
 function drawOverlay(heading, subtext, color) {
-  ctx.fillStyle = 'rgba(5, 5, 15, 0.85)';
-  ctx.fillRect(90, 175, W - 180, 190);
+  ctx.fillStyle = 'rgba(5, 5, 15, 0.86)';
+  ctx.fillRect(80, 175, W - 160, 190);
   ctx.strokeStyle = color;
   ctx.lineWidth = 4;
-  ctx.strokeRect(90, 175, W - 180, 190);
+  ctx.strokeRect(80, 175, W - 160, 190);
 
   ctx.textAlign = 'center';
   ctx.fillStyle = color;
@@ -1189,7 +1306,7 @@ function drawOverlay(heading, subtext, color) {
 
   ctx.fillStyle = '#00f5d4';
   ctx.font = 'bold 16px "Courier New", monospace';
-  ctx.fillText('PRESS [SPACE] OR CLICK TO PLAY AGAIN', W / 2, 330);
+  ctx.fillText('TAP SCREEN OR PRESS [JUMP] TO PLAY AGAIN', W / 2, 330);
   ctx.textAlign = 'left';
 }
 
@@ -1210,7 +1327,6 @@ function drawVictoryOverlay() {
   ctx.fillText('Leap Hamilton saved humanity & outwitted the Unity!', W / 2, 212);
   ctx.fillText('Final Score: ' + score, W / 2, 236);
 
-  // Secret Codeword Box
   ctx.fillStyle = 'rgba(0, 245, 212, 0.12)';
   ctx.fillRect(150, 256, W - 300, 74);
   ctx.strokeStyle = '#00f5d4';
@@ -1231,7 +1347,7 @@ function drawVictoryOverlay() {
 
   ctx.fillStyle = '#a0a0c0';
   ctx.font = 'bold 14px "Courier New", monospace';
-  ctx.fillText('PRESS [SPACE] OR CLICK TO PLAY AGAIN', W / 2, 396);
+  ctx.fillText('TAP SCREEN OR PRESS [JUMP] TO PLAY AGAIN', W / 2, 396);
   ctx.textAlign = 'left';
 }
 
