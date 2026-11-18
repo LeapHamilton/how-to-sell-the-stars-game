@@ -314,7 +314,7 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
       jumpBufferTimer = 0.16;
       if (gameState === 'title') startGame();
-      else if (gameState === 'gameover' || gameState === 'victory') startGame();
+      else if ((gameState === 'gameover' || gameState === 'victory') && victoryCooldown <= 0) startGame();
     }
     if (e.code === 'KeyM') toggleMusic();
     if (e.code === 'KeyR' && gameState === 'playing') loadLevel(currentLevelIdx);
@@ -328,7 +328,7 @@ window.addEventListener('keyup', (e) => {
 
 canvas.addEventListener('click', () => {
   initAudio();
-  if (gameState === 'title' || gameState === 'gameover' || gameState === 'victory') {
+  if (gameState === 'title' || ((gameState === 'gameover' || gameState === 'victory') && victoryCooldown <= 0)) {
     startGame();
   }
 });
@@ -499,6 +499,7 @@ let score = 0;
 let lives = 5;
 let globalTime = 0;
 let screenShake = 0;
+let victoryCooldown = 0;
 let particles = [];
 
 let player = {
@@ -589,6 +590,7 @@ function hurtPlayer() {
   lives--;
   if (lives <= 0) {
     gameState = 'gameover';
+    victoryCooldown = 1.0;
   } else {
     const def = LEVELS[currentLevelIdx];
     player.x = def.spawn.x;
@@ -605,6 +607,7 @@ function hurtPlayer() {
 function update(dt) {
   globalTime += dt;
   if (screenShake > 0) screenShake = Math.max(0, screenShake - dt);
+  if (victoryCooldown > 0) victoryCooldown = Math.max(0, victoryCooldown - dt);
 
   for (let i = particles.length - 1; i >= 0; i--) {
     const pt = particles[i];
@@ -778,6 +781,7 @@ function update(dt) {
       loadLevel(currentLevelIdx);
     } else {
       gameState = 'victory';
+      victoryCooldown = 1.2;
     }
   }
 }
@@ -847,7 +851,7 @@ function draw() {
   drawHUD(def);
 
   if (gameState === 'gameover') drawOverlay("PITCH REJECTED!", "The Unity has claimed the galaxy. Press SPACE or Click to try again.", "#ff4d6d");
-  if (gameState === 'victory') drawOverlay("YOU SOLD THE STARS!", "Leap Hamilton saved humanity & outwitted the Unity! Final Score: " + score, "#ffe600");
+  if (gameState === 'victory') drawVictoryOverlay();
 
   ctx.restore();
 }
@@ -1168,7 +1172,7 @@ function drawTitleScreen() {
 }
 
 function drawOverlay(heading, subtext, color) {
-  ctx.fillStyle = 'rgba(5, 5, 15, 0.82)';
+  ctx.fillStyle = 'rgba(5, 5, 15, 0.85)';
   ctx.fillRect(90, 175, W - 180, 190);
   ctx.strokeStyle = color;
   ctx.lineWidth = 4;
@@ -1186,6 +1190,48 @@ function drawOverlay(heading, subtext, color) {
   ctx.fillStyle = '#00f5d4';
   ctx.font = 'bold 16px "Courier New", monospace';
   ctx.fillText('PRESS [SPACE] OR CLICK TO PLAY AGAIN', W / 2, 330);
+  ctx.textAlign = 'left';
+}
+
+function drawVictoryOverlay() {
+  ctx.fillStyle = 'rgba(5, 5, 15, 0.90)';
+  ctx.fillRect(70, 125, W - 140, 295);
+  ctx.strokeStyle = '#ffe600';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(70, 125, W - 140, 295);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffe600';
+  ctx.font = 'bold 34px "Courier New", monospace';
+  ctx.fillText('YOU SOLD THE STARS!', W / 2, 178);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px "Courier New", monospace';
+  ctx.fillText('Leap Hamilton saved humanity & outwitted the Unity!', W / 2, 212);
+  ctx.fillText('Final Score: ' + score, W / 2, 236);
+
+  // Secret Codeword Box
+  ctx.fillStyle = 'rgba(0, 245, 212, 0.12)';
+  ctx.fillRect(150, 256, W - 300, 74);
+  ctx.strokeStyle = '#00f5d4';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(150, 256, W - 300, 74);
+
+  ctx.fillStyle = '#00f5d4';
+  ctx.font = 'bold 13px "Courier New", monospace';
+  ctx.fillText('YOUR SECRET CODEWORD:', W / 2, 280);
+
+  ctx.fillStyle = '#ffe600';
+  ctx.font = 'bold 26px "Courier New", monospace';
+  ctx.fillText('"DANCING QUEEN"', W / 2, 314);
+
+  ctx.fillStyle = '#ffd166';
+  ctx.font = '14px "Courier New", monospace';
+  ctx.fillText('Reply to the newsletter with this codeword for your free book!', W / 2, 358);
+
+  ctx.fillStyle = '#a0a0c0';
+  ctx.font = 'bold 14px "Courier New", monospace';
+  ctx.fillText('PRESS [SPACE] OR CLICK TO PLAY AGAIN', W / 2, 396);
   ctx.textAlign = 'left';
 }
 
